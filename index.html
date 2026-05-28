@@ -326,6 +326,8 @@
     padding: 13px 0;
     border-bottom: 1px solid var(--border);
     animation: fadeIn 0.2s ease;
+    user-select: none;
+    -webkit-user-select: none;
   }
   .todo-check {
     width: 20px; height: 20px;
@@ -887,12 +889,16 @@
   .drag-handle {
     color: var(--text3);
     cursor: grab;
-    padding: 4px 2px;
-    font-size: 14px;
+    padding: 4px 6px;
+    font-size: 16px;
     flex-shrink: 0;
     line-height: 1;
     touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
   }
+
 
   /* Settings gear btn */
   .gear-btn {
@@ -1766,11 +1772,11 @@ function toggleCarryoverItem(id) {
 }
 
 function carryoverSelectAll() {
-  document.querySelectorAll('.carryover-cb').forEach(cb => cb.classList.add('checked'));
+  document.querySelectorAll('#carryover-list .carryover-cb').forEach(cb => cb.classList.add('checked'));
 }
 
 function carryoverClearAll() {
-  document.querySelectorAll('.carryover-cb').forEach(cb => cb.classList.remove('checked'));
+  document.querySelectorAll('#carryover-list .carryover-cb').forEach(cb => cb.classList.remove('checked'));
 }
 
 function closeCarryover() {
@@ -1779,9 +1785,10 @@ function closeCarryover() {
 
 function confirmCarryover() {
   const remaining = S.data.todos.filter(t => !t.done);
+  const list = document.getElementById('carryover-list');
   const keepIds = new Set(
     remaining
-      .filter(t => document.getElementById('cb-' + t.id)?.classList.contains('checked'))
+      .filter(t => list.querySelector('#cb-' + t.id)?.classList.contains('checked'))
       .map(t => t.id)
   );
   // Keep carry-over items (reset done=false), remove unchecked
@@ -1828,35 +1835,39 @@ function addDragHandlers(el, id) {
   if (!handle) return;
 
   handle.addEventListener('touchstart', e => {
+    e.preventDefault();
+    e.stopPropagation();
     touchStartY = e.touches[0].clientY;
-    touchItem = el;
     el.classList.add('dragging');
     dragSrc = id;
-    e.preventDefault();
   }, { passive: false });
 
   handle.addEventListener('touchmove', e => {
     e.preventDefault();
-    const y = e.touches[0].clientY;
-    const els = [...document.querySelectorAll('.todo-item:not(.dragging)')];
+    e.stopPropagation();
+    if (!dragSrc) return;
+    const touch = e.touches[0];
+    const y = touch.clientY;
+    // Temporarily hide dragging el to get element underneath
+    el.style.pointerEvents = 'none';
+    const below = document.elementFromPoint(touch.clientX, y);
+    el.style.pointerEvents = '';
+    const targetEl = below ? below.closest('.todo-item') : null;
     document.querySelectorAll('.todo-item').forEach(i => i.classList.remove('drag-over'));
-    const target = els.find(el => {
-      const r = el.getBoundingClientRect();
-      return y >= r.top && y <= r.bottom;
-    });
-    if (target) target.classList.add('drag-over');
+    if (targetEl && targetEl !== el) targetEl.classList.add('drag-over');
   }, { passive: false });
 
   handle.addEventListener('touchend', e => {
+    e.preventDefault();
     el.classList.remove('dragging');
     const target = document.querySelector('.todo-item.drag-over');
-    if (target) {
+    if (target && target !== el) {
       const targetId = target.dataset.id;
       if (targetId && dragSrc !== targetId) reorderTodo(dragSrc, targetId);
     }
     document.querySelectorAll('.todo-item').forEach(i => i.classList.remove('drag-over'));
     dragSrc = null;
-  });
+  }, { passive: false });
 }
 
 function reorderTodo(srcId, targetId) {

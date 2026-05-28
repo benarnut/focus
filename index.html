@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Focus</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⏱</text></svg>">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Focus">
+<meta name="theme-color" content="#F5F3EE" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141412" media="(prefers-color-scheme: dark)">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -615,6 +620,163 @@
 
   /* Scrollbar */
   ::-webkit-scrollbar { width: 0px; }
+
+  /* ── SETTINGS MODAL ── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 400;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--bg);
+    border-radius: var(--radius) var(--radius) 0 0;
+    padding: 24px 20px 40px;
+    width: 100%; max-width: 480px;
+    animation: slideUp 0.25s ease;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  .modal-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 24px;
+  }
+  .modal-title {
+    font-family: var(--font-mono);
+    font-size: 11px; color: var(--text3);
+    letter-spacing: 0.1em; text-transform: uppercase;
+  }
+  .modal-close {
+    background: none; border: none;
+    color: var(--text3); font-size: 20px;
+    cursor: pointer; line-height: 1; padding: 4px;
+  }
+  .settings-section { margin-bottom: 20px; }
+  .settings-section-label {
+    font-family: var(--font-mono);
+    font-size: 10px; color: var(--text3);
+    letter-spacing: 0.08em; text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .preset-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    gap: 8px; margin-bottom: 8px;
+  }
+  .preset-btn {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    text-align: left; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .preset-btn.active { border-color: var(--text); background: var(--bg3); }
+  .preset-name {
+    font-family: var(--font-mono);
+    font-size: 12px; color: var(--text); margin-bottom: 2px;
+  }
+  .preset-desc { font-size: 11px; color: var(--text3); }
+  .custom-duration-row {
+    display: grid; grid-template-columns: repeat(3,1fr);
+    gap: 8px; margin-top: 8px;
+  }
+  .duration-field label {
+    display: block; font-family: var(--font-mono);
+    font-size: 10px; color: var(--text3);
+    letter-spacing: 0.06em; margin-bottom: 4px;
+  }
+  .duration-input {
+    width: 100%; background: var(--bg2);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 8px 10px; font-family: var(--font-mono);
+    font-size: 14px; color: var(--text); outline: none; text-align: center;
+    transition: border-color 0.2s;
+  }
+  .duration-input:focus { border-color: var(--border2); }
+  .btn-apply {
+    width: 100%; margin-top: 16px; background: var(--accent);
+    border: none; border-radius: var(--radius); padding: 13px;
+    font-family: var(--font-mono); font-size: 13px; font-weight: 500;
+    color: var(--accent-text); cursor: pointer;
+  }
+
+  /* ── AUTOCOMPLETE ── */
+  .working-on-wrap { position: relative; margin-bottom: 20px; }
+  .autocomplete-list {
+    position: absolute; top: 100%; left: 0; right: 0;
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: var(--radius-sm); z-index: 50; overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.12); display: none;
+  }
+  .autocomplete-list.show { display: block; }
+  .autocomplete-item {
+    padding: 10px 14px; font-size: 14px; color: var(--text);
+    cursor: pointer; border-bottom: 1px solid var(--border); transition: background 0.1s;
+  }
+  .autocomplete-item:last-child { border-bottom: none; }
+  .autocomplete-item:hover { background: var(--bg2); }
+
+  /* ── NOTE EDIT ── */
+  .note-edit-textarea {
+    width: 100%; background: transparent; border: none; outline: none;
+    font-family: var(--font-sans); font-size: 14px; color: var(--text);
+    resize: none; line-height: 1.6; min-height: 60px;
+  }
+  .note-edit-actions {
+    display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px;
+  }
+  .btn-cancel {
+    background: none; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 6px 14px; font-family: var(--font-mono);
+    font-size: 12px; color: var(--text2); cursor: pointer;
+  }
+
+  /* ── WEEKLY STATS ── */
+  .stats-tabs {
+    display: flex; gap: 4px; background: var(--bg2);
+    border-radius: var(--radius-sm); padding: 4px; margin-bottom: 20px;
+  }
+  .stats-tab {
+    flex: 1; background: none; border: none; border-radius: 6px; padding: 7px;
+    font-family: var(--font-mono); font-size: 12px; color: var(--text3);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .stats-tab.active {
+    background: var(--surface); color: var(--text);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .week-bar-chart {
+    background: var(--bg2); border-radius: var(--radius);
+    padding: 16px; margin-bottom: 20px;
+  }
+  .week-bars {
+    display: flex; align-items: flex-end;
+    gap: 6px; height: 80px; margin-bottom: 8px;
+  }
+  .week-bar-col {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    gap: 4px; height: 100%; justify-content: flex-end;
+  }
+  .week-bar {
+    width: 100%; background: var(--bg3); border-radius: 4px 4px 0 0;
+    min-height: 3px; transition: height 0.3s ease;
+  }
+  .week-bar.today { background: var(--text); }
+  .week-bar-label { font-family: var(--font-mono); font-size: 9px; color: var(--text3); }
+  .week-bar-val { font-family: var(--font-mono); font-size: 9px; color: var(--text2); margin-bottom: 2px; }
+
+  /* Settings gear btn */
+  .gear-btn {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: 20px;
+    padding: 5px 10px; cursor: pointer; font-size: 14px; color: var(--text2);
+    transition: all 0.2s; display: flex; align-items: center;
+  }
+  .gear-btn:hover { background: var(--bg3); }
+  .header-actions { display: flex; gap: 6px; align-items: center; }
 </style>
 </head>
 <body>
@@ -623,17 +785,27 @@
 <div id="screen-timer" class="screen active">
   <div class="screen-header">
     <span class="screen-title">focus</span>
-    <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
-      <span id="theme-icon">☾</span>
-    </button>
+    <div class="header-actions">
+      <button class="gear-btn" onclick="openSettings()" aria-label="Settings">⚙</button>
+      <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+        <span id="theme-icon">☾</span>
+      </button>
+    </div>
   </div>
 
-  <input class="working-on-input" id="working-on" type="text" placeholder="Working on..." maxlength="60" aria-label="Task name">
+  <div class="working-on-wrap">
+    <input class="working-on-input" id="working-on" type="text" placeholder="Working on..." maxlength="60"
+      autocomplete="off" aria-label="Task name"
+      oninput="showAutocomplete(this.value)"
+      onblur="setTimeout(hideAutocomplete,150)"
+      onfocus="showAutocomplete(this.value)">
+    <div class="autocomplete-list" id="autocomplete-list"></div>
+  </div>
 
   <div class="mode-pills">
-    <button class="mode-pill active" onclick="setMode('focus',25)" id="pill-focus">focus</button>
-    <button class="mode-pill" onclick="setMode('short',5)" id="pill-short">short break</button>
-    <button class="mode-pill" onclick="setMode('long',15)" id="pill-long">long break</button>
+    <button class="mode-pill active" onclick="setMode('focus')" id="pill-focus">focus</button>
+    <button class="mode-pill" onclick="setMode('short')" id="pill-short">short break</button>
+    <button class="mode-pill" onclick="setMode('long')" id="pill-long">long break</button>
   </div>
 
   <div class="timer-wrap">
@@ -643,7 +815,7 @@
         stroke-dasharray="552.9" stroke-dashoffset="0"/>
     </svg>
     <div class="timer-center">
-      <div class="timer-display" id="timer-display">25:00</div>
+      <div class="timer-display" id="timer-display">--:--</div>
       <div class="timer-mode-label" id="timer-label">FOCUS</div>
     </div>
   </div>
@@ -709,24 +881,53 @@
     <span class="screen-title">stats</span>
     <button class="theme-toggle" onclick="toggleTheme()"><span id="theme-icon4">☾</span></button>
   </div>
-  <div class="stats-grid">
-    <div class="stat-card">
-      <div class="stat-label">pomodoros</div>
-      <div class="stat-value" id="stat-count">0</div>
-      <div class="stat-sub">today</div>
+  <div class="stats-tabs">
+    <button class="stats-tab active" onclick="switchStatsTab('today')" id="tab-today">today</button>
+    <button class="stats-tab" onclick="switchStatsTab('week')" id="tab-week">this week</button>
+  </div>
+  <!-- TODAY VIEW -->
+  <div id="stats-today-view">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">pomodoros</div>
+        <div class="stat-value" id="stat-count">0</div>
+        <div class="stat-sub">today</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">focus time</div>
+        <div class="stat-value" id="stat-time">0</div>
+        <div class="stat-sub" id="stat-time-unit">min</div>
+      </div>
     </div>
-    <div class="stat-card">
-      <div class="stat-label">focus time</div>
-      <div class="stat-value" id="stat-time">0</div>
-      <div class="stat-sub" id="stat-time-unit">min</div>
+    <div class="session-log">
+      <div class="session-log-header">session log</div>
+      <div id="session-log-list"></div>
+    </div>
+    <div class="clear-stats-row">
+      <button class="clear-btn" onclick="clearStats()">clear today</button>
     </div>
   </div>
-  <div class="session-log">
-    <div class="session-log-header">session log</div>
-    <div id="session-log-list"></div>
-  </div>
-  <div class="clear-stats-row">
-    <button class="clear-btn" onclick="clearStats()">clear today</button>
+  <!-- WEEK VIEW -->
+  <div id="stats-week-view" style="display:none;">
+    <div class="week-bar-chart">
+      <div class="week-bars" id="week-bars"></div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">week total</div>
+        <div class="stat-value" id="stat-week-count">0</div>
+        <div class="stat-sub">pomodoros</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">week focus</div>
+        <div class="stat-value" id="stat-week-time">0</div>
+        <div class="stat-sub" id="stat-week-unit">min</div>
+      </div>
+    </div>
+    <div class="session-log">
+      <div class="session-log-header">top tasks this week</div>
+      <div id="week-task-list"></div>
+    </div>
   </div>
 </div>
 
@@ -757,6 +958,52 @@
   <button class="btn-skip" onclick="skipBreak()">skip break →</button>
 </div>
 
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay" id="settings-modal" onclick="if(event.target===this)closeSettings()">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">settings</span>
+      <button class="modal-close" onclick="closeSettings()">×</button>
+    </div>
+    <div class="settings-section">
+      <div class="settings-section-label">duration preset</div>
+      <div class="preset-grid">
+        <button class="preset-btn active" id="preset-classic" onclick="selectPreset('classic')">
+          <div class="preset-name">classic</div>
+          <div class="preset-desc">25 / 5 / 15 min</div>
+        </button>
+        <button class="preset-btn" id="preset-long" onclick="selectPreset('long')">
+          <div class="preset-name">long focus</div>
+          <div class="preset-desc">50 / 10 / 20 min</div>
+        </button>
+        <button class="preset-btn" id="preset-deep" onclick="selectPreset('deep')">
+          <div class="preset-name">deep work</div>
+          <div class="preset-desc">90 / 15 / 30 min</div>
+        </button>
+        <button class="preset-btn" id="preset-custom" onclick="selectPreset('custom')">
+          <div class="preset-name">custom</div>
+          <div class="preset-desc">set your own</div>
+        </button>
+      </div>
+      <div class="custom-duration-row" id="custom-fields" style="display:none;">
+        <div class="duration-field">
+          <label>FOCUS (min)</label>
+          <input class="duration-input" id="dur-focus" type="number" min="1" max="120" value="25">
+        </div>
+        <div class="duration-field">
+          <label>SHORT (min)</label>
+          <input class="duration-input" id="dur-short" type="number" min="1" max="60" value="5">
+        </div>
+        <div class="duration-field">
+          <label>LONG (min)</label>
+          <input class="duration-input" id="dur-long" type="number" min="1" max="60" value="15">
+        </div>
+      </div>
+    </div>
+    <button class="btn-apply" onclick="applySettings()">apply</button>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
@@ -765,12 +1012,18 @@
 const S = {
   timer: { running: false, mode: 'focus', total: 25*60, remaining: 25*60, interval: null },
   sound: { current: null, ctx: null, nodes: [] },
-  data: JSON.parse(localStorage.getItem('focusApp') || '{}')
+  data: JSON.parse(localStorage.getItem('focusApp') || '{}'),
+  selectedPreset: 'classic'
 };
 if (!S.data.todos) S.data.todos = [];
 if (!S.data.notes) S.data.notes = [];
 if (!S.data.sessions) S.data.sessions = [];
-if (!S.data.settings) S.data.settings = { theme: 'system' };
+if (!S.data.settings) S.data.settings = { theme: 'system', workMin: 25, shortMin: 5, longMin: 15, sound: null, volume: 50, lastTask: '' };
+if (!S.data.settings.workMin) { S.data.settings.workMin = 25; S.data.settings.shortMin = 5; S.data.settings.longMin = 15; }
+if (!S.data.settings.lastTask) S.data.settings.lastTask = '';
+// Restore last task and timer durations
+S.timer.total = S.data.settings.workMin * 60;
+S.timer.remaining = S.data.settings.workMin * 60;
 
 // ── THEME ──────────────────────────────────────────────
 function applyTheme() {
@@ -792,8 +1045,38 @@ function toggleTheme() {
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
 applyTheme();
 
+// Restore last task
+const savedTask = S.data.settings.lastTask || '';
+if (savedTask) document.getElementById('working-on').value = savedTask;
+
+// Restore saved sound
+const savedSound = S.data.settings.sound;
+const savedVol = S.data.settings.volume || 50;
+document.getElementById('vol-slider').value = savedVol;
+document.getElementById('vol-val').textContent = savedVol;
+if (savedSound) {
+  document.querySelectorAll('.sound-pill').forEach(p => p.classList.remove('active'));
+  const el = document.getElementById('snd-' + savedSound);
+  if (el) el.classList.add('active');
+  S.sound.current = savedSound;
+  // Don't auto-play — require user interaction first
+}
+
+// Restore preset label
+const wm = S.data.settings.workMin;
+if (wm === 25) S.selectedPreset = 'classic';
+else if (wm === 50) S.selectedPreset = 'long';
+else if (wm === 90) S.selectedPreset = 'deep';
+else S.selectedPreset = 'custom';
+
 // ── SAVE ──────────────────────────────────────────────
 function save() { localStorage.setItem('focusApp', JSON.stringify(S.data)); }
+
+// Save task label on input
+document.getElementById('working-on').addEventListener('input', function() {
+  S.data.settings.lastTask = this.value;
+  save();
+});
 
 // ── NAV ──────────────────────────────────────────────
 function showScreen(name) {
@@ -807,15 +1090,23 @@ function showScreen(name) {
 // ── TIMER ──────────────────────────────────────────────
 const CIRC = 2 * Math.PI * 88; // 552.9
 
+function getMins(mode) {
+  if (mode === 'focus') return S.data.settings.workMin || 25;
+  if (mode === 'short') return S.data.settings.shortMin || 5;
+  if (mode === 'long') return S.data.settings.longMin || 15;
+  return 25;
+}
 function setMode(mode, mins) {
   if (S.timer.running) { clearInterval(S.timer.interval); S.timer.running = false; }
   S.timer.mode = mode;
-  S.timer.total = mins * 60;
-  S.timer.remaining = mins * 60;
+  const m = mins !== undefined ? mins : getMins(mode);
+  S.timer.total = m * 60;
+  S.timer.remaining = m * 60;
   document.getElementById('start-btn').textContent = 'start';
   document.querySelectorAll('.mode-pill').forEach(p => p.classList.remove('active'));
   document.getElementById('pill-' + (mode === 'focus' ? 'focus' : mode === 'short' ? 'short' : 'long')).classList.add('active');
-  document.getElementById('timer-label').textContent = mode.toUpperCase().replace('SHORT','SHORT BREAK').replace('LONG','LONG BREAK');
+  const labels = { focus: 'FOCUS', short: 'SHORT BREAK', long: 'LONG BREAK' };
+  document.getElementById('timer-label').textContent = labels[mode] || 'FOCUS';
   updateDisplay();
 }
 
@@ -863,12 +1154,12 @@ function onTimerEnd() {
     startBreak('short');
   } else {
     notify('Break over. Ready to focus?');
-    setMode('focus', 25);
+    setMode('focus');
   }
 }
 
 function startBreak(type) {
-  const mins = type === 'short' ? 5 : 15;
+  const mins = type === 'short' ? (S.data.settings.shortMin || 5) : (S.data.settings.longMin || 15);
   const overlay = document.getElementById('break-overlay');
   overlay.classList.add('show');
   document.getElementById('break-label').textContent = type === 'short' ? 'SHORT BREAK' : 'LONG BREAK';
@@ -890,7 +1181,7 @@ function updateBreakDisplay(rem) {
 function skipBreak() {
   clearInterval(S.timer._breakInterval);
   document.getElementById('break-overlay').classList.remove('show');
-  setMode('focus', 25);
+  setMode('focus');
 }
 
 function resetTimer() {
@@ -924,9 +1215,11 @@ function stopSound() {
 function selectSound(type) {
   stopSound();
   document.querySelectorAll('.sound-pill').forEach(p => p.classList.remove('active'));
-  if (!type) { document.getElementById('snd-off').classList.add('active'); S.sound.current = null; return; }
+  if (!type) { document.getElementById('snd-off').classList.add('active'); S.sound.current = null; S.data.settings.sound = null; save(); return; }
   document.getElementById('snd-' + type).classList.add('active');
   S.sound.current = type;
+  S.data.settings.sound = type;
+  save();
   const ctx = getAudioCtx();
   const vol = parseInt(document.getElementById('vol-slider').value) / 100;
   SOUNDS[type](ctx, vol);
@@ -934,6 +1227,8 @@ function selectSound(type) {
 
 function setVolume(v) {
   document.getElementById('vol-val').textContent = v;
+  S.data.settings.volume = parseInt(v);
+  save();
   if (S.sound.current) selectSound(S.sound.current);
 }
 
@@ -1040,6 +1335,90 @@ function genCafe(ctx, vol) {
   S.sound.nodes.push(src);
 }
 
+// ── AUTOCOMPLETE ──────────────────────────────────────
+function getTaskHistory() {
+  const seen = new Set();
+  return S.data.sessions
+    .map(s => s.label)
+    .filter(l => l && l !== 'Untitled' && !seen.has(l) && seen.add(l))
+    .slice(-20).reverse();
+}
+
+function showAutocomplete(val) {
+  const list = document.getElementById('autocomplete-list');
+  const history = getTaskHistory();
+  const matches = val.trim()
+    ? history.filter(h => h.toLowerCase().includes(val.toLowerCase()) && h.toLowerCase() !== val.toLowerCase())
+    : history.slice(0, 6);
+  if (matches.length === 0) { list.classList.remove('show'); return; }
+  list.innerHTML = matches.map(m =>
+    `<div class="autocomplete-item" onmousedown="selectTask('${escHtml(m)}')">${escHtml(m)}</div>`
+  ).join('');
+  list.classList.add('show');
+}
+
+function hideAutocomplete() {
+  document.getElementById('autocomplete-list').classList.remove('show');
+}
+
+function selectTask(label) {
+  document.getElementById('working-on').value = label;
+  S.data.settings.lastTask = label;
+  save();
+  hideAutocomplete();
+}
+
+// ── SETTINGS ──────────────────────────────────────────
+const PRESETS = {
+  classic: { work: 25, short: 5, long: 15 },
+  long:    { work: 50, short: 10, long: 20 },
+  deep:    { work: 90, short: 15, long: 30 },
+};
+
+function openSettings() {
+  document.getElementById('settings-modal').classList.add('show');
+  // Reflect current preset
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('preset-' + S.selectedPreset).classList.add('active');
+  document.getElementById('custom-fields').style.display = S.selectedPreset === 'custom' ? 'grid' : 'none';
+  document.getElementById('dur-focus').value = S.data.settings.workMin || 25;
+  document.getElementById('dur-short').value = S.data.settings.shortMin || 5;
+  document.getElementById('dur-long').value = S.data.settings.longMin || 15;
+}
+
+function closeSettings() {
+  document.getElementById('settings-modal').classList.remove('show');
+}
+
+function selectPreset(preset) {
+  S.selectedPreset = preset;
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('preset-' + preset).classList.add('active');
+  const custom = document.getElementById('custom-fields');
+  if (preset === 'custom') {
+    custom.style.display = 'grid';
+  } else {
+    custom.style.display = 'none';
+    const p = PRESETS[preset];
+    document.getElementById('dur-focus').value = p.work;
+    document.getElementById('dur-short').value = p.short;
+    document.getElementById('dur-long').value = p.long;
+  }
+}
+
+function applySettings() {
+  const work = parseInt(document.getElementById('dur-focus').value) || 25;
+  const short = parseInt(document.getElementById('dur-short').value) || 5;
+  const long = parseInt(document.getElementById('dur-long').value) || 15;
+  S.data.settings.workMin = work;
+  S.data.settings.shortMin = short;
+  S.data.settings.longMin = long;
+  save();
+  closeSettings();
+  setMode('focus');
+  toast('Duration updated ✓');
+}
+
 // ── TODOS ──────────────────────────────────────────────
 function renderTodos() {
   const list = document.getElementById('todo-list');
@@ -1112,11 +1491,15 @@ function renderNotes() {
   [...S.data.notes].reverse().forEach(n => {
     const div = document.createElement('div');
     div.className = 'note-card';
+    div.id = 'note-card-' + n.id;
     div.innerHTML = `
-      <div class="note-body">${escHtml(n.text)}</div>
+      <div class="note-body" id="note-body-${n.id}">${escHtml(n.text)}</div>
       <div class="note-footer">
         <span class="note-time">${n.time}</span>
         <div class="note-actions">
+          <button class="note-action-btn" onclick="editNote('${n.id}')" title="Edit" aria-label="Edit note">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
           <button class="note-action-btn" onclick="exportNote('${n.id}')" title="Export as .md" aria-label="Export note">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           </button>
@@ -1128,6 +1511,32 @@ function renderNotes() {
     `;
     list.appendChild(div);
   });
+}
+
+function editNote(id) {
+  const n = S.data.notes.find(n => n.id === id);
+  if (!n) return;
+  const card = document.getElementById('note-card-' + id);
+  card.innerHTML = `
+    <textarea class="note-edit-textarea" id="edit-ta-${id}" rows="4">${escHtml(n.text)}</textarea>
+    <div class="note-edit-actions">
+      <button class="btn-cancel" onclick="renderNotes()">cancel</button>
+      <button class="btn-save" onclick="saveEditNote('${id}')">save</button>
+    </div>
+  `;
+  const ta = document.getElementById('edit-ta-' + id);
+  ta.focus();
+  ta.setSelectionRange(ta.value.length, ta.value.length);
+}
+
+function saveEditNote(id) {
+  const ta = document.getElementById('edit-ta-' + id);
+  if (!ta) return;
+  const text = ta.value.trim();
+  if (!text) return;
+  const n = S.data.notes.find(n => n.id === id);
+  if (n) { n.text = text; n.edited = fmtTime(); }
+  save(); renderNotes();
 }
 
 function saveNote() {
@@ -1164,11 +1573,20 @@ function exportAllNotes() {
 renderNotes();
 
 // ── STATS ──────────────────────────────────────────────
+function switchStatsTab(tab) {
+  document.getElementById('tab-today').classList.toggle('active', tab === 'today');
+  document.getElementById('tab-week').classList.toggle('active', tab === 'week');
+  document.getElementById('stats-today-view').style.display = tab === 'today' ? 'block' : 'none';
+  document.getElementById('stats-week-view').style.display = tab === 'week' ? 'block' : 'none';
+  if (tab === 'week') renderWeekStats();
+}
+
 function renderStats() {
   const today = new Date().toDateString();
   const sessions = S.data.sessions.filter(s => s.date === today);
   const total = sessions.reduce((a, s) => a + (s.count || 1), 0);
-  const mins = total * 25;
+  const focusMins = S.data.settings.workMin || 25;
+  const mins = total * focusMins;
   document.getElementById('stat-count').textContent = total;
   if (mins >= 60) {
     document.getElementById('stat-time').textContent = (mins/60).toFixed(1);
@@ -1195,6 +1613,60 @@ function renderStats() {
     `;
     logEl.appendChild(row);
   });
+}
+
+function renderWeekStats() {
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const today = new Date();
+  const focusMins = S.data.settings.workMin || 25;
+  // Build 7-day window
+  const week = Array.from({length:7}, (_,i) => {
+    const d = new Date(today);
+    d.setDate(today.getDate() - (6-i));
+    return { dateStr: d.toDateString(), label: days[d.getDay()], isToday: i===6 };
+  });
+  const counts = week.map(w => {
+    const sessions = S.data.sessions.filter(s => s.date === w.dateStr);
+    return sessions.reduce((a,s) => a + (s.count||1), 0);
+  });
+  const maxCount = Math.max(...counts, 1);
+  // Render bars
+  const barsEl = document.getElementById('week-bars');
+  barsEl.innerHTML = week.map((w,i) => `
+    <div class="week-bar-col">
+      <div class="week-bar-val">${counts[i] || ''}</div>
+      <div class="week-bar${w.isToday?' today':''}" style="height:${Math.max(4,(counts[i]/maxCount)*72)}px"></div>
+      <div class="week-bar-label">${w.label}</div>
+    </div>
+  `).join('');
+  // Week totals
+  const weekTotal = counts.reduce((a,b)=>a+b,0);
+  const weekMins = weekTotal * focusMins;
+  document.getElementById('stat-week-count').textContent = weekTotal;
+  if (weekMins >= 60) {
+    document.getElementById('stat-week-time').textContent = (weekMins/60).toFixed(1);
+    document.getElementById('stat-week-unit').textContent = 'hours';
+  } else {
+    document.getElementById('stat-week-time').textContent = weekMins;
+    document.getElementById('stat-week-unit').textContent = 'min';
+  }
+  // Top tasks this week
+  const weekDates = new Set(week.map(w => w.dateStr));
+  const taskMap = {};
+  S.data.sessions.filter(s => weekDates.has(s.date)).forEach(s => {
+    taskMap[s.label] = (taskMap[s.label] || 0) + (s.count||1);
+  });
+  const sorted = Object.entries(taskMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const taskEl = document.getElementById('week-task-list');
+  taskEl.innerHTML = sorted.length ? sorted.map(([label,count]) => `
+    <div class="session-row">
+      <span class="session-task">${escHtml(label)}</span>
+      <div class="session-meta">
+        <div class="session-count">${count}× total</div>
+        <div>${count * focusMins} min</div>
+      </div>
+    </div>
+  `).join('') : '<div class="empty-state" style="padding:20px;">no sessions this week</div>';
 }
 
 function clearStats() {

@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Focus</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F5F3EE;
+    --bg2: #EDEAE3;
+    --bg3: #E2DED6;
+    --surface: #FFFFFF;
+    --border: rgba(0,0,0,0.08);
+    --border2: rgba(0,0,0,0.14);
+    --text: #1A1917;
+    --text2: #6B6860;
+    --text3: #A09D98;
+    --accent: #1A1917;
+    --accent-text: #F5F3EE;
+    --danger: #C0392B;
+    --success: #2D7A4F;
+    --radius: 14px;
+    --radius-sm: 8px;
+    --nav-h: 64px;
+    --font-mono: 'DM Mono', monospace;
+    --font-sans: 'DM Sans', sans-serif;
+  }
+  [data-theme="dark"] {
+    --bg: #141412;
+    --bg2: #1C1C19;
+    --bg3: #242420;
+    --surface: #1C1C19;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #F0EDE6;
+    --text2: #888680;
+    --text3: #555350;
+    --accent: #F0EDE6;
+    --accent-text: #141412;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    max-width: 480px;
+    margin: 0 auto;
+    position: relative;
+    transition: background 0.3s, color 0.3s;
+    overflow-x: hidden;
+  }
+
+  /* NAV */
+  .nav {
+    position: fixed;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 100%; max-width: 480px;
+    height: var(--nav-h);
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    z-index: 100;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .nav-btn {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    background: none; border: none; cursor: pointer;
+    padding: 6px 16px;
+    color: var(--text3);
+    font-size: 10px;
+    font-family: var(--font-sans);
+    letter-spacing: 0.04em;
+    transition: color 0.2s;
+  }
+  .nav-btn svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .nav-btn.active { color: var(--text); }
+  .nav-btn.active svg { stroke-width: 2; }
+
+  /* SCREENS */
+  .screen { display: none; padding: 24px 20px calc(var(--nav-h) + 16px); min-height: 100vh; }
+  .screen.active { display: block; }
+
+  /* HEADER ROW */
+  .screen-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 24px;
+  }
+  .screen-title {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text3);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* THEME TOGGLE */
+  .theme-toggle {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text2);
+    transition: all 0.2s;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .theme-toggle:hover { background: var(--bg3); }
+
+  /* ── TIMER SCREEN ── */
+  .working-on-input {
+    width: 100%;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    font-family: var(--font-sans);
+    font-size: 15px;
+    color: var(--text);
+    outline: none;
+    margin-bottom: 28px;
+    transition: border-color 0.2s;
+  }
+  .working-on-input::placeholder { color: var(--text3); }
+  .working-on-input:focus { border-color: var(--border2); }
+
+  /* Mode pills */
+  .mode-pills {
+    display: flex; gap: 6px; justify-content: center;
+    margin-bottom: 32px;
+  }
+  .mode-pill {
+    background: none;
+    border: 1px solid var(--border2);
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 12px;
+    font-family: var(--font-mono);
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .mode-pill.active {
+    background: var(--accent);
+    color: var(--accent-text);
+    border-color: var(--accent);
+  }
+
+  /* Timer ring */
+  .timer-wrap {
+    display: flex; justify-content: center;
+    margin-bottom: 28px;
+    position: relative;
+  }
+  .timer-ring-svg { transform: rotate(-90deg); }
+  .timer-ring-bg { fill: none; stroke: var(--bg3); stroke-width: 4; }
+  .timer-ring-progress {
+    fill: none;
+    stroke: var(--text);
+    stroke-width: 4;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1s linear;
+  }
+  .timer-center {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+  }
+  .timer-display {
+    font-family: var(--font-mono);
+    font-size: 40px;
+    font-weight: 300;
+    color: var(--text);
+    letter-spacing: -1px;
+    line-height: 1;
+  }
+  .timer-mode-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text3);
+    letter-spacing: 0.08em;
+    margin-top: 6px;
+  }
+
+  /* Timer buttons */
+  .timer-btns {
+    display: flex; gap: 10px; margin-bottom: 24px;
+  }
+  .btn-ghost {
+    flex: 1;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 13px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-ghost:hover { background: var(--bg3); }
+  .btn-primary {
+    flex: 2;
+    background: var(--accent);
+    border: none;
+    border-radius: var(--radius);
+    padding: 13px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--accent-text);
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  .btn-primary:active { transform: scale(0.98); }
+
+  /* Sound section */
+  .sound-section {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .sound-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .sound-options {
+    display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;
+  }
+  .sound-pill {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 12px;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .sound-pill.active {
+    background: var(--accent);
+    color: var(--accent-text);
+    border-color: var(--accent);
+  }
+  .volume-row {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .vol-icon { color: var(--text3); font-size: 14px; flex-shrink: 0; }
+  input[type=range] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 3px;
+    background: var(--bg3);
+    border-radius: 2px;
+    outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--text);
+    cursor: pointer;
+  }
+  .vol-val {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text3);
+    min-width: 28px;
+    text-align: right;
+  }
+
+  /* ── TODO SCREEN ── */
+  .todo-add-row {
+    display: flex; gap: 8px; margin-bottom: 20px;
+  }
+  .todo-input {
+    flex: 1;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .todo-input::placeholder { color: var(--text3); }
+  .todo-input:focus { border-color: var(--border2); }
+  .btn-add {
+    background: var(--accent);
+    border: none;
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    color: var(--accent-text);
+    font-size: 20px;
+    cursor: pointer;
+    line-height: 1;
+    transition: opacity 0.15s;
+  }
+  .todo-list { display: flex; flex-direction: column; }
+  .todo-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 13px 0;
+    border-bottom: 1px solid var(--border);
+    animation: fadeIn 0.2s ease;
+  }
+  .todo-check {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border2);
+    background: none;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .todo-check.done {
+    background: var(--success);
+    border-color: var(--success);
+  }
+  .todo-check.done::after {
+    content: '';
+    width: 5px; height: 9px;
+    border-right: 2px solid white;
+    border-bottom: 2px solid white;
+    transform: rotate(40deg) translate(-1px, -1px);
+    display: block;
+  }
+  .todo-text {
+    flex: 1;
+    font-size: 14px;
+    color: var(--text);
+    transition: all 0.3s;
+  }
+  .todo-text.done {
+    text-decoration: line-through;
+    color: var(--text3);
+  }
+  .todo-del {
+    background: none; border: none;
+    color: var(--text3);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .todo-item:hover .todo-del { opacity: 1; }
+  .clear-btn {
+    background: none; border: none;
+    color: var(--text3);
+    font-size: 12px;
+    font-family: var(--font-mono);
+    cursor: pointer;
+    padding: 4px 0;
+    letter-spacing: 0.04em;
+    transition: color 0.2s;
+  }
+  .clear-btn:hover { color: var(--danger); }
+  .todo-footer {
+    display: flex; justify-content: flex-end;
+    margin-top: 16px;
+  }
+  .empty-state {
+    text-align: center;
+    padding: 40px 0;
+    color: var(--text3);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    letter-spacing: 0.04em;
+  }
+
+  /* ── NOTES SCREEN ── */
+  .note-capture {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 20px;
+    transition: border-color 0.2s;
+  }
+  .note-capture:focus-within { border-color: var(--border2); }
+  .note-textarea {
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    color: var(--text);
+    resize: none;
+    min-height: 60px;
+    line-height: 1.6;
+  }
+  .note-textarea::placeholder { color: var(--text3); }
+  .note-capture-footer {
+    display: flex; justify-content: flex-end;
+    margin-top: 8px;
+  }
+  .btn-save {
+    background: var(--accent);
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 7px 16px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--accent-text);
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .notes-list { display: flex; flex-direction: column; gap: 10px; }
+  .note-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    animation: fadeIn 0.2s ease;
+  }
+  .note-body {
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.6;
+    margin-bottom: 10px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .note-footer {
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .note-time {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text3);
+  }
+  .note-actions { display: flex; gap: 10px; }
+  .note-action-btn {
+    background: none; border: none;
+    color: var(--text3);
+    cursor: pointer;
+    font-size: 15px;
+    padding: 2px;
+    transition: color 0.2s;
+    display: flex; align-items: center;
+  }
+  .note-action-btn:hover { color: var(--text); }
+  .notes-header-actions {
+    display: flex; gap: 8px; align-items: center;
+  }
+  .btn-export-all {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 5px 10px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.04em;
+  }
+  .btn-export-all:hover { border-color: var(--border2); color: var(--text); }
+
+  /* ── STATS SCREEN ── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .stat-card {
+    background: var(--bg2);
+    border-radius: var(--radius);
+    padding: 16px;
+  }
+  .stat-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .stat-value {
+    font-family: var(--font-mono);
+    font-size: 28px;
+    font-weight: 300;
+    color: var(--text);
+    line-height: 1;
+    margin-bottom: 2px;
+  }
+  .stat-sub {
+    font-size: 11px;
+    color: var(--text3);
+  }
+  .session-log {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .session-log-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .session-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+  .session-row:last-child { border-bottom: none; }
+  .session-task { font-size: 13px; color: var(--text); }
+  .session-meta {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text3);
+    text-align: right;
+  }
+  .session-count {
+    font-size: 11px;
+    color: var(--text2);
+    margin-bottom: 2px;
+  }
+  .clear-stats-row {
+    display: flex; justify-content: flex-end;
+    margin-top: 12px;
+  }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: calc(var(--nav-h) + 16px);
+    left: 50%; transform: translateX(-50%);
+    background: var(--text);
+    color: var(--accent-text);
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 200;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; }
+
+  /* BREAK OVERLAY */
+  .break-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: var(--bg);
+    z-index: 300;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .break-overlay.show { display: flex; }
+  .break-title {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text3);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .break-time {
+    font-family: var(--font-mono);
+    font-size: 60px;
+    font-weight: 300;
+    color: var(--text);
+    letter-spacing: -2px;
+    margin-bottom: 32px;
+  }
+  .btn-skip {
+    background: none;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 11px 28px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-skip:hover { background: var(--bg2); }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 0px; }
+</style>
+</head>
+<body>
+
+<!-- SCREENS -->
+<div id="screen-timer" class="screen active">
+  <div class="screen-header">
+    <span class="screen-title">focus</span>
+    <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+      <span id="theme-icon">☾</span>
+    </button>
+  </div>
+
+  <input class="working-on-input" id="working-on" type="text" placeholder="Working on..." maxlength="60" aria-label="Task name">
+
+  <div class="mode-pills">
+    <button class="mode-pill active" onclick="setMode('focus',25)" id="pill-focus">focus</button>
+    <button class="mode-pill" onclick="setMode('short',5)" id="pill-short">short break</button>
+    <button class="mode-pill" onclick="setMode('long',15)" id="pill-long">long break</button>
+  </div>
+
+  <div class="timer-wrap">
+    <svg class="timer-ring-svg" width="200" height="200" viewBox="0 0 200 200" aria-hidden="true">
+      <circle class="timer-ring-bg" cx="100" cy="100" r="88"/>
+      <circle class="timer-ring-progress" id="ring" cx="100" cy="100" r="88"
+        stroke-dasharray="552.9" stroke-dashoffset="0"/>
+    </svg>
+    <div class="timer-center">
+      <div class="timer-display" id="timer-display">25:00</div>
+      <div class="timer-mode-label" id="timer-label">FOCUS</div>
+    </div>
+  </div>
+
+  <div class="timer-btns">
+    <button class="btn-ghost" onclick="resetTimer()">reset</button>
+    <button class="btn-primary" id="start-btn" onclick="toggleTimer()">start</button>
+  </div>
+
+  <div class="sound-section">
+    <div class="sound-label">ambient</div>
+    <div class="sound-options">
+      <button class="sound-pill" onclick="selectSound('rain')" id="snd-rain">rain</button>
+      <button class="sound-pill" onclick="selectSound('forest')" id="snd-forest">forest</button>
+      <button class="sound-pill" onclick="selectSound('cafe')" id="snd-cafe">café</button>
+      <button class="sound-pill" onclick="selectSound('white')" id="snd-white">white noise</button>
+      <button class="sound-pill active" onclick="selectSound(null)" id="snd-off">off</button>
+    </div>
+    <div class="volume-row">
+      <span class="vol-icon">♪</span>
+      <input type="range" id="vol-slider" min="0" max="100" value="50" step="1" oninput="setVolume(this.value)" aria-label="Volume">
+      <span class="vol-val" id="vol-val">50</span>
+    </div>
+  </div>
+</div>
+
+<div id="screen-todo" class="screen">
+  <div class="screen-header">
+    <span class="screen-title">today</span>
+    <button class="theme-toggle" onclick="toggleTheme()"><span id="theme-icon2">☾</span></button>
+  </div>
+  <div class="todo-add-row">
+    <input class="todo-input" id="todo-input" type="text" placeholder="Add a task..." maxlength="80"
+      onkeydown="if(event.key==='Enter') addTodo()" aria-label="New task">
+    <button class="btn-add" onclick="addTodo()" aria-label="Add task">+</button>
+  </div>
+  <div class="todo-list" id="todo-list"></div>
+  <div class="todo-footer">
+    <button class="clear-btn" onclick="clearTodos()">clear all</button>
+  </div>
+</div>
+
+<div id="screen-notes" class="screen">
+  <div class="screen-header">
+    <span class="screen-title">notes</span>
+    <div class="notes-header-actions">
+      <button class="btn-export-all" onclick="exportAllNotes()">export all ↓</button>
+      <button class="theme-toggle" onclick="toggleTheme()"><span id="theme-icon3">☾</span></button>
+    </div>
+  </div>
+  <div class="note-capture">
+    <textarea class="note-textarea" id="note-input" placeholder="Capture a thought..."
+      onkeydown="if(event.ctrlKey&&event.key==='Enter') saveNote()" rows="3"></textarea>
+    <div class="note-capture-footer">
+      <button class="btn-save" onclick="saveNote()">save</button>
+    </div>
+  </div>
+  <div class="notes-list" id="notes-list"></div>
+</div>
+
+<div id="screen-stats" class="screen">
+  <div class="screen-header">
+    <span class="screen-title">stats</span>
+    <button class="theme-toggle" onclick="toggleTheme()"><span id="theme-icon4">☾</span></button>
+  </div>
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">pomodoros</div>
+      <div class="stat-value" id="stat-count">0</div>
+      <div class="stat-sub">today</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">focus time</div>
+      <div class="stat-value" id="stat-time">0</div>
+      <div class="stat-sub" id="stat-time-unit">min</div>
+    </div>
+  </div>
+  <div class="session-log">
+    <div class="session-log-header">session log</div>
+    <div id="session-log-list"></div>
+  </div>
+  <div class="clear-stats-row">
+    <button class="clear-btn" onclick="clearStats()">clear today</button>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="nav">
+  <button class="nav-btn active" onclick="showScreen('timer')" id="nav-timer" aria-label="Timer">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+    timer
+  </button>
+  <button class="nav-btn" onclick="showScreen('todo')" id="nav-todo" aria-label="Todo">
+    <svg viewBox="0 0 24 24"><line x1="9" y1="7" x2="20" y2="7"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="17" x2="20" y2="17"/><polyline points="4 7 5 8 7 6"/><polyline points="4 12 5 13 7 11"/><polyline points="4 17 5 18 7 16"/></svg>
+    todo
+  </button>
+  <button class="nav-btn" onclick="showScreen('notes')" id="nav-notes" aria-label="Notes">
+    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+    notes
+  </button>
+  <button class="nav-btn" onclick="showScreen('stats')" id="nav-stats" aria-label="Stats">
+    <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    stats
+  </button>
+</nav>
+
+<!-- BREAK OVERLAY -->
+<div class="break-overlay" id="break-overlay">
+  <div class="break-title" id="break-label">SHORT BREAK</div>
+  <div class="break-time" id="break-display">05:00</div>
+  <button class="btn-skip" onclick="skipBreak()">skip break →</button>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────
+const S = {
+  timer: { running: false, mode: 'focus', total: 25*60, remaining: 25*60, interval: null },
+  sound: { current: null, ctx: null, nodes: [] },
+  data: JSON.parse(localStorage.getItem('focusApp') || '{}')
+};
+if (!S.data.todos) S.data.todos = [];
+if (!S.data.notes) S.data.notes = [];
+if (!S.data.sessions) S.data.sessions = [];
+if (!S.data.settings) S.data.settings = { theme: 'system' };
+
+// ── THEME ──────────────────────────────────────────────
+function applyTheme() {
+  const pref = S.data.settings.theme;
+  const isDark = pref === 'dark' || (pref === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  document.body.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  const icon = isDark ? '☀' : '☾';
+  ['theme-icon','theme-icon2','theme-icon3','theme-icon4'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = icon;
+  });
+}
+function toggleTheme() {
+  const cur = S.data.settings.theme;
+  const isDark = cur === 'dark' || (cur === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  S.data.settings.theme = isDark ? 'light' : 'dark';
+  save(); applyTheme();
+}
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
+applyTheme();
+
+// ── SAVE ──────────────────────────────────────────────
+function save() { localStorage.setItem('focusApp', JSON.stringify(S.data)); }
+
+// ── NAV ──────────────────────────────────────────────
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+  if (name === 'stats') renderStats();
+}
+
+// ── TIMER ──────────────────────────────────────────────
+const CIRC = 2 * Math.PI * 88; // 552.9
+
+function setMode(mode, mins) {
+  if (S.timer.running) { clearInterval(S.timer.interval); S.timer.running = false; }
+  S.timer.mode = mode;
+  S.timer.total = mins * 60;
+  S.timer.remaining = mins * 60;
+  document.getElementById('start-btn').textContent = 'start';
+  document.querySelectorAll('.mode-pill').forEach(p => p.classList.remove('active'));
+  document.getElementById('pill-' + (mode === 'focus' ? 'focus' : mode === 'short' ? 'short' : 'long')).classList.add('active');
+  document.getElementById('timer-label').textContent = mode.toUpperCase().replace('SHORT','SHORT BREAK').replace('LONG','LONG BREAK');
+  updateDisplay();
+}
+
+function updateDisplay() {
+  const m = Math.floor(S.timer.remaining / 60);
+  const s = S.timer.remaining % 60;
+  document.getElementById('timer-display').textContent = String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  const progress = 1 - S.timer.remaining / S.timer.total;
+  document.getElementById('ring').style.strokeDashoffset = CIRC * (1 - progress);
+}
+
+function toggleTimer() {
+  if (S.timer.running) {
+    clearInterval(S.timer.interval);
+    S.timer.running = false;
+    document.getElementById('start-btn').textContent = 'resume';
+  } else {
+    S.timer.running = true;
+    document.getElementById('start-btn').textContent = 'pause';
+    S.timer.interval = setInterval(tick, 1000);
+  }
+}
+
+function tick() {
+  S.timer.remaining--;
+  updateDisplay();
+  if (S.timer.remaining <= 0) {
+    clearInterval(S.timer.interval);
+    S.timer.running = false;
+    onTimerEnd();
+  }
+}
+
+function onTimerEnd() {
+  if (S.timer.mode === 'focus') {
+    // Log session
+    const label = document.getElementById('working-on').value.trim() || 'Untitled';
+    const today = new Date().toDateString();
+    const existing = S.data.sessions.find(s => s.label === label && s.date === today);
+    if (existing) { existing.count = (existing.count || 1) + 1; existing.lastTime = fmtTime(); }
+    else { S.data.sessions.push({ id: Date.now(), label, date: today, count: 1, lastTime: fmtTime() }); }
+    save();
+    // Show break
+    notify('🍅 Focus session complete! Take a break.');
+    startBreak('short');
+  } else {
+    notify('Break over. Ready to focus?');
+    setMode('focus', 25);
+  }
+}
+
+function startBreak(type) {
+  const mins = type === 'short' ? 5 : 15;
+  const overlay = document.getElementById('break-overlay');
+  overlay.classList.add('show');
+  document.getElementById('break-label').textContent = type === 'short' ? 'SHORT BREAK' : 'LONG BREAK';
+  let rem = mins * 60;
+  updateBreakDisplay(rem);
+  S.timer._breakInterval = setInterval(() => {
+    rem--;
+    updateBreakDisplay(rem);
+    if (rem <= 0) { clearInterval(S.timer._breakInterval); skipBreak(); }
+  }, 1000);
+}
+
+function updateBreakDisplay(rem) {
+  const m = String(Math.floor(rem/60)).padStart(2,'0');
+  const s = String(rem%60).padStart(2,'0');
+  document.getElementById('break-display').textContent = m+':'+s;
+}
+
+function skipBreak() {
+  clearInterval(S.timer._breakInterval);
+  document.getElementById('break-overlay').classList.remove('show');
+  setMode('focus', 25);
+}
+
+function resetTimer() {
+  clearInterval(S.timer.interval);
+  S.timer.running = false;
+  S.timer.remaining = S.timer.total;
+  document.getElementById('start-btn').textContent = 'start';
+  updateDisplay();
+}
+
+updateDisplay();
+
+// ── SOUND (Web Audio) ──────────────────────────────────
+const SOUNDS = {
+  rain: () => genRain(),
+  white: () => genWhiteNoise(),
+  forest: () => genForest(),
+  cafe: () => genCafe()
+};
+
+function getAudioCtx() {
+  if (!S.sound.ctx) S.sound.ctx = new (window.AudioContext || window.webkitAudioContext)();
+  return S.sound.ctx;
+}
+
+function stopSound() {
+  S.sound.nodes.forEach(n => { try { n.stop(); } catch(e){} });
+  S.sound.nodes = [];
+}
+
+function selectSound(type) {
+  stopSound();
+  document.querySelectorAll('.sound-pill').forEach(p => p.classList.remove('active'));
+  if (!type) { document.getElementById('snd-off').classList.add('active'); S.sound.current = null; return; }
+  document.getElementById('snd-' + type).classList.add('active');
+  S.sound.current = type;
+  const ctx = getAudioCtx();
+  const vol = parseInt(document.getElementById('vol-slider').value) / 100;
+  SOUNDS[type](ctx, vol);
+}
+
+function setVolume(v) {
+  document.getElementById('vol-val').textContent = v;
+  if (S.sound.current) selectSound(S.sound.current);
+}
+
+function masterGain(ctx, vol) {
+  const g = ctx.createGain();
+  g.gain.value = vol * 0.4;
+  g.connect(ctx.destination);
+  return g;
+}
+
+function genRain(ctx, vol) {
+  if (!ctx) { ctx = getAudioCtx(); vol = parseInt(document.getElementById('vol-slider').value)/100; }
+  const buf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * 0.8;
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  src.loop = true;
+  const filt = ctx.createBiquadFilter();
+  filt.type = 'bandpass';
+  filt.frequency.value = 1200;
+  filt.Q.value = 0.5;
+  const g = masterGain(ctx, vol);
+  src.connect(filt); filt.connect(g);
+  src.start();
+  S.sound.nodes.push(src);
+}
+
+function genWhiteNoise(ctx, vol) {
+  if (!ctx) { ctx = getAudioCtx(); vol = parseInt(document.getElementById('vol-slider').value)/100; }
+  const buf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+  const src = ctx.createBufferSource();
+  src.buffer = buf; src.loop = true;
+  const g = masterGain(ctx, vol * 0.6);
+  src.connect(g); src.start();
+  S.sound.nodes.push(src);
+}
+
+function genForest(ctx, vol) {
+  if (!ctx) { ctx = getAudioCtx(); vol = parseInt(document.getElementById('vol-slider').value)/100; }
+  const g = masterGain(ctx, vol);
+  // birds: oscillators with random freq modulation
+  for (let i = 0; i < 4; i++) {
+    setTimeout(() => {
+      const osc = ctx.createOscillator();
+      const oscGain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = 1200 + Math.random() * 800;
+      oscGain.gain.value = 0;
+      osc.connect(oscGain); oscGain.connect(g);
+      osc.start();
+      // chirp pattern
+      function chirp() {
+        const t = ctx.currentTime;
+        oscGain.gain.cancelScheduledValues(t);
+        oscGain.gain.setValueAtTime(0, t);
+        oscGain.gain.linearRampToValueAtTime(0.15, t + 0.05);
+        oscGain.gain.linearRampToValueAtTime(0, t + 0.15);
+        osc.frequency.setValueAtTime(1200 + Math.random()*800, t);
+        setTimeout(chirp, 1500 + Math.random() * 3000);
+      }
+      setTimeout(chirp, Math.random() * 2000);
+      S.sound.nodes.push(osc);
+    }, i * 500);
+  }
+  // wind
+  const buf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random()*2-1)*0.3;
+  const src = ctx.createBufferSource();
+  src.buffer = buf; src.loop = true;
+  const filt = ctx.createBiquadFilter();
+  filt.type = 'lowpass'; filt.frequency.value = 400;
+  const wg = ctx.createGain(); wg.gain.value = 0.3;
+  src.connect(filt); filt.connect(wg); wg.connect(g);
+  src.start();
+  S.sound.nodes.push(src);
+}
+
+function genCafe(ctx, vol) {
+  if (!ctx) { ctx = getAudioCtx(); vol = parseInt(document.getElementById('vol-slider').value)/100; }
+  const g = masterGain(ctx, vol);
+  // murmur: pink-ish noise
+  const buf = ctx.createBuffer(2, ctx.sampleRate * 3, ctx.sampleRate);
+  for (let c = 0; c < 2; c++) {
+    const d = buf.getChannelData(c);
+    let b0=0,b1=0,b2=0;
+    for (let i=0; i<d.length; i++) {
+      const wn = Math.random()*2-1;
+      b0 = 0.99886*b0 + wn*0.0555179;
+      b1 = 0.99332*b1 + wn*0.0750759;
+      b2 = 0.96900*b2 + wn*0.1538520;
+      d[i] = (b0+b1+b2+wn*0.0288)*0.25;
+    }
+  }
+  const src = ctx.createBufferSource();
+  src.buffer = buf; src.loop = true;
+  const filt = ctx.createBiquadFilter();
+  filt.type = 'bandpass'; filt.frequency.value = 600; filt.Q.value = 0.4;
+  src.connect(filt); filt.connect(g);
+  src.start();
+  S.sound.nodes.push(src);
+}
+
+// ── TODOS ──────────────────────────────────────────────
+function renderTodos() {
+  const list = document.getElementById('todo-list');
+  const todos = S.data.todos.filter(t => !t.done);
+  list.innerHTML = '';
+  if (todos.length === 0) {
+    list.innerHTML = '<div class="empty-state">nothing here yet</div>';
+    return;
+  }
+  todos.forEach(t => {
+    const div = document.createElement('div');
+    div.className = 'todo-item';
+    div.innerHTML = `
+      <button class="todo-check" onclick="toggleTodo('${t.id}')" aria-label="Complete task"></button>
+      <span class="todo-text">${escHtml(t.text)}</span>
+      <button class="todo-del" onclick="deleteTodo('${t.id}')" aria-label="Delete task">×</button>
+    `;
+    list.appendChild(div);
+  });
+}
+
+function addTodo() {
+  const inp = document.getElementById('todo-input');
+  const text = inp.value.trim();
+  if (!text) return;
+  S.data.todos.push({ id: String(Date.now()), text, done: false });
+  inp.value = '';
+  save(); renderTodos();
+}
+
+function toggleTodo(id) {
+  const t = S.data.todos.find(t => t.id === id);
+  if (!t) return;
+  t.done = true;
+  save();
+  // animate out
+  setTimeout(() => { renderTodos(); }, 600);
+  const list = document.getElementById('todo-list');
+  const items = list.querySelectorAll('.todo-item');
+  items.forEach(item => {
+    const btn = item.querySelector('.todo-check');
+    if (btn && item.querySelector('.todo-text').textContent === t.text) {
+      btn.classList.add('done');
+      item.querySelector('.todo-text').classList.add('done');
+    }
+  });
+}
+
+function deleteTodo(id) {
+  S.data.todos = S.data.todos.filter(t => t.id !== id);
+  save(); renderTodos();
+}
+
+function clearTodos() {
+  if (!confirm('Clear all tasks?')) return;
+  S.data.todos = [];
+  save(); renderTodos();
+}
+
+renderTodos();
+
+// ── NOTES ──────────────────────────────────────────────
+function renderNotes() {
+  const list = document.getElementById('notes-list');
+  list.innerHTML = '';
+  if (S.data.notes.length === 0) {
+    list.innerHTML = '<div class="empty-state" style="padding:24px 0;">no notes yet</div>';
+    return;
+  }
+  [...S.data.notes].reverse().forEach(n => {
+    const div = document.createElement('div');
+    div.className = 'note-card';
+    div.innerHTML = `
+      <div class="note-body">${escHtml(n.text)}</div>
+      <div class="note-footer">
+        <span class="note-time">${n.time}</span>
+        <div class="note-actions">
+          <button class="note-action-btn" onclick="exportNote('${n.id}')" title="Export as .md" aria-label="Export note">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </button>
+          <button class="note-action-btn" onclick="deleteNote('${n.id}')" title="Delete" aria-label="Delete note">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          </button>
+        </div>
+      </div>
+    `;
+    list.appendChild(div);
+  });
+}
+
+function saveNote() {
+  const inp = document.getElementById('note-input');
+  const text = inp.value.trim();
+  if (!text) return;
+  S.data.notes.push({ id: String(Date.now()), text, time: fmtTime() });
+  inp.value = '';
+  save(); renderNotes();
+}
+
+function deleteNote(id) {
+  S.data.notes = S.data.notes.filter(n => n.id !== id);
+  save(); renderNotes();
+}
+
+function exportNote(id) {
+  const n = S.data.notes.find(n => n.id === id);
+  if (!n) return;
+  const md = `---\ncreated: ${new Date().toISOString().split('T')[0]}\ntime: ${n.time}\n---\n\n${n.text}\n`;
+  downloadFile(`note-${n.id}.md`, md);
+  toast('Exported to .md');
+}
+
+function exportAllNotes() {
+  if (S.data.notes.length === 0) { toast('No notes to export'); return; }
+  const md = S.data.notes.map(n =>
+    `---\ncreated: ${new Date().toISOString().split('T')[0]}\ntime: ${n.time}\n---\n\n${n.text}\n`
+  ).join('\n\n');
+  downloadFile(`focus-notes-${new Date().toISOString().split('T')[0]}.md`, md);
+  toast('All notes exported');
+}
+
+renderNotes();
+
+// ── STATS ──────────────────────────────────────────────
+function renderStats() {
+  const today = new Date().toDateString();
+  const sessions = S.data.sessions.filter(s => s.date === today);
+  const total = sessions.reduce((a, s) => a + (s.count || 1), 0);
+  const mins = total * 25;
+  document.getElementById('stat-count').textContent = total;
+  if (mins >= 60) {
+    document.getElementById('stat-time').textContent = (mins/60).toFixed(1);
+    document.getElementById('stat-time-unit').textContent = 'hours today';
+  } else {
+    document.getElementById('stat-time').textContent = mins;
+    document.getElementById('stat-time-unit').textContent = 'min today';
+  }
+  const logEl = document.getElementById('session-log-list');
+  logEl.innerHTML = '';
+  if (sessions.length === 0) {
+    logEl.innerHTML = '<div class="empty-state" style="padding:20px;">no sessions yet today</div>';
+    return;
+  }
+  sessions.forEach(s => {
+    const row = document.createElement('div');
+    row.className = 'session-row';
+    row.innerHTML = `
+      <span class="session-task">${escHtml(s.label)}</span>
+      <div class="session-meta">
+        <div class="session-count">${s.count}× session${s.count>1?'s':''}</div>
+        <div>${s.lastTime || ''}</div>
+      </div>
+    `;
+    logEl.appendChild(row);
+  });
+}
+
+function clearStats() {
+  const today = new Date().toDateString();
+  S.data.sessions = S.data.sessions.filter(s => s.date !== today);
+  save(); renderStats();
+}
+
+// ── HELPERS ──────────────────────────────────────────────
+function fmtTime() {
+  return new Date().toLocaleTimeString('th-TH', { hour:'2-digit', minute:'2-digit' });
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function downloadFile(name, content) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type: 'text/plain' }));
+  a.download = name; a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function notify(msg) {
+  toast(msg);
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification('Focus', { body: msg, icon: '' });
+  } else if ('Notification' in window && Notification.permission !== 'denied') {
+    Notification.requestPermission();
+  }
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>

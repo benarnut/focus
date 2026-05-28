@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Focus</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⏱</text></svg>">
+<link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Focus">
@@ -769,6 +770,25 @@
   .week-bar-label { font-family: var(--font-mono); font-size: 9px; color: var(--text3); }
   .week-bar-val { font-family: var(--font-mono); font-size: 9px; color: var(--text2); margin-bottom: 2px; }
 
+  /* ── POMODORO COUNTER ── */
+  .pomo-counter {
+    display: flex; align-items: center; justify-content: center;
+    gap: 6px; margin-bottom: 20px;
+  }
+  .pomo-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--bg3);
+    border: 1.5px solid var(--border2);
+    transition: all 0.3s ease;
+  }
+  .pomo-dot.done { background: var(--text); border-color: var(--text); }
+  .pomo-dot.long { background: var(--success); border-color: var(--success); width: 10px; height: 10px; }
+  .pomo-label {
+    font-family: var(--font-mono);
+    font-size: 10px; color: var(--text3);
+    letter-spacing: 0.08em; margin-left: 4px;
+  }
+
   /* Settings gear btn */
   .gear-btn {
     background: var(--bg2); border: 1px solid var(--border); border-radius: 20px;
@@ -806,6 +826,14 @@
     <button class="mode-pill active" onclick="setMode('focus')" id="pill-focus">focus</button>
     <button class="mode-pill" onclick="setMode('short')" id="pill-short">short break</button>
     <button class="mode-pill" onclick="setMode('long')" id="pill-long">long break</button>
+  </div>
+
+  <div class="pomo-counter" id="pomo-counter">
+    <div class="pomo-dot" id="pomo-dot-1"></div>
+    <div class="pomo-dot" id="pomo-dot-2"></div>
+    <div class="pomo-dot" id="pomo-dot-3"></div>
+    <div class="pomo-dot" id="pomo-dot-4"></div>
+    <span class="pomo-label" id="pomo-label">0 / 4</span>
   </div>
 
   <div class="timer-wrap">
@@ -1024,6 +1052,16 @@ if (!S.data.settings.lastTask) S.data.settings.lastTask = '';
 // Restore last task and timer durations
 S.timer.total = S.data.settings.workMin * 60;
 S.timer.remaining = S.data.settings.workMin * 60;
+// Session count for long break trigger
+if (!S.data.settings.dailySessionCount) S.data.settings.dailySessionCount = 0;
+if (!S.data.settings.sessionCountDate) S.data.settings.sessionCountDate = '';
+// Reset count if it's a new day
+const _today = new Date().toDateString();
+if (S.data.settings.sessionCountDate !== _today) {
+  S.data.settings.dailySessionCount = 0;
+  S.data.settings.sessionCountDate = _today;
+  save();
+}
 
 // ── THEME ──────────────────────────────────────────────
 function applyTheme() {
@@ -1044,6 +1082,9 @@ function toggleTheme() {
 }
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
 applyTheme();
+
+// Update pomo counter on load
+updatePomoCounter();
 
 // Restore last task
 const savedTask = S.data.settings.lastTask || '';
@@ -1148,13 +1189,49 @@ function onTimerEnd() {
     const existing = S.data.sessions.find(s => s.label === label && s.date === today);
     if (existing) { existing.count = (existing.count || 1) + 1; existing.lastTime = fmtTime(); }
     else { S.data.sessions.push({ id: Date.now(), label, date: today, count: 1, lastTime: fmtTime() }); }
+    // Increment daily session count
+    if (S.data.settings.sessionCountDate !== today) {
+      S.data.settings.dailySessionCount = 0;
+      S.data.settings.sessionCountDate = today;
+    }
+    S.data.settings.dailySessionCount = (S.data.settings.dailySessionCount || 0) + 1;
     save();
-    // Show break
-    notify('🍅 Focus session complete! Take a break.');
-    startBreak('short');
+    updatePomoCounter();
+    // Every 4th session → long break
+    const isLongBreak = S.data.settings.dailySessionCount % 4 === 0;
+    if (isLongBreak) {
+      notify('🎉 4 sessions done! Time for a long break.');
+      startBreak('long');
+    } else {
+      notify('🍅 Focus session complete! Take a short break.');
+      startBreak('short');
+    }
   } else {
     notify('Break over. Ready to focus?');
     setMode('focus');
+  }
+}
+
+function updatePomoCounter() {
+  const today = new Date().toDateString();
+  if (S.data.settings.sessionCountDate !== today) return;
+  const count = S.data.settings.dailySessionCount || 0;
+  const posInCycle = count % 4; // 0 = just finished 4th
+  for (let i = 1; i <= 4; i++) {
+    const dot = document.getElementById('pomo-dot-' + i);
+    if (!dot) continue;
+    dot.className = 'pomo-dot';
+    if (posInCycle === 0 && count > 0) {
+      // Just completed a full cycle — briefly show all done
+      dot.classList.add('long');
+    } else if (i <= posInCycle) {
+      dot.classList.add('done');
+    }
+  }
+  const label = document.getElementById('pomo-label');
+  if (label) {
+    const inCycle = posInCycle === 0 && count > 0 ? 4 : posInCycle;
+    label.textContent = inCycle + ' / 4';
   }
 }
 
@@ -1705,6 +1782,14 @@ function toast(msg) {
   t.textContent = msg;
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── SERVICE WORKER REGISTRATION ──────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .catch(err => console.log('SW registration failed:', err));
+  });
 }
 </script>
 </body>

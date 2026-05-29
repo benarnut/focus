@@ -900,6 +900,57 @@
   }
 
 
+  /* ── EXPORT / IMPORT ── */
+  .settings-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 16px 0;
+  }
+  .export-import-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .btn-export-data {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 11px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .btn-export-data:hover { background: var(--bg3); color: var(--text); }
+  .btn-import-data {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 11px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .btn-import-data:hover { background: var(--bg3); color: var(--text); }
+
+  /* ── KEYBOARD SHORTCUT HINT ── */
+  .kbd-hint {
+    display: inline-block;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text3);
+    margin-left: 4px;
+  }
+
   /* Settings gear btn */
   .gear-btn {
     background: var(--bg2); border: 1px solid var(--border); border-radius: 20px;
@@ -1147,6 +1198,18 @@
       </div>
     </div>
     <button class="btn-apply" onclick="applySettings()">apply</button>
+
+    <hr class="settings-divider">
+
+    <div class="settings-section">
+      <div class="settings-section-label">data</div>
+      <div class="export-import-row">
+        <button class="btn-export-data" onclick="exportData()">↓ export data</button>
+        <button class="btn-import-data" onclick="triggerImport()">↑ import data</button>
+      </div>
+      <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
+      <p style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.5;">Export saves all todos, notes, sessions and settings as a JSON file. Import restores everything from a previous export.</p>
+    </div>
   </div>
 </div>
 
@@ -1606,6 +1669,69 @@ function genCafe(ctx, vol) {
   S.sound.nodes.push(src);
 }
 
+// ── EXPORT / IMPORT DATA ─────────────────────────────
+function exportData() {
+  const date = new Date().toISOString().split('T')[0];
+  const backup = {
+    version: 'focus-v5',
+    exported: new Date().toISOString(),
+    data: S.data
+  };
+  downloadFile(`focus-backup-${date}.json`, JSON.stringify(backup, null, 2));
+  toast('Data exported ✓');
+  closeSettings();
+}
+
+function triggerImport() {
+  document.getElementById('import-file').click();
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const backup = JSON.parse(e.target.result);
+      // Validate structure
+      if (!backup.data || typeof backup.data !== 'object') {
+        toast('Invalid backup file'); return;
+      }
+      const d = backup.data;
+      if (!Array.isArray(d.todos) || !Array.isArray(d.notes) || !Array.isArray(d.sessions)) {
+        toast('Invalid backup structure'); return;
+      }
+      // Restore
+      S.data = d;
+      if (!S.data.settings) S.data.settings = {};
+      save();
+      renderTodos();
+      renderNotes();
+      renderStats();
+      updatePomoCounter();
+      // Restore working-on field
+      if (S.data.settings.lastTask) {
+        document.getElementById('working-on').value = S.data.settings.lastTask;
+      }
+      // Restore sound UI
+      const snd = S.data.settings.sound;
+      document.querySelectorAll('.sound-pill').forEach(p => p.classList.remove('active'));
+      document.getElementById(snd ? 'snd-' + snd : 'snd-off').classList.add('active');
+      const vol = S.data.settings.volume || 50;
+      document.getElementById('vol-slider').value = vol;
+      document.getElementById('vol-val').textContent = vol;
+      applyTheme();
+      closeSettings();
+      toast('Data restored ✓');
+    } catch(err) {
+      toast('Failed to parse backup file');
+    }
+    // Reset file input so same file can be re-imported
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
 // ── AUTOCOMPLETE ──────────────────────────────────────
 function getTaskHistory() {
   const seen = new Set();
@@ -1621,10 +1747,15 @@ function showAutocomplete(val) {
   const matches = val.trim()
     ? history.filter(h => h.toLowerCase().includes(val.toLowerCase()) && h.toLowerCase() !== val.toLowerCase())
     : history.slice(0, 6);
+  list.innerHTML = '';
   if (matches.length === 0) { list.classList.remove('show'); return; }
-  list.innerHTML = matches.map(m =>
-    `<div class="autocomplete-item" onmousedown="selectTask('${escHtml(m)}')">${escHtml(m)}</div>`
-  ).join('');
+  matches.forEach(m => {
+    const div = document.createElement('div');
+    div.className = 'autocomplete-item';
+    div.textContent = m;
+    div.addEventListener('mousedown', () => selectTask(m));
+    list.appendChild(div);
+  });
   list.classList.add('show');
 }
 
@@ -2135,6 +2266,35 @@ function toast(msg) {
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2500);
 }
+
+// ── KEYBOARD SHORTCUTS ───────────────────────────────
+document.addEventListener('keydown', e => {
+  // Only fire when no input/textarea is focused
+  const tag = document.activeElement.tagName.toLowerCase();
+  if (tag === 'input' || tag === 'textarea') return;
+  // Only fire on timer screen for Space and R
+  switch(e.key) {
+    case ' ':
+      e.preventDefault();
+      // Only on timer screen
+      if (document.getElementById('screen-timer').classList.contains('active')) {
+        toggleTimer();
+      }
+      break;
+    case 'r':
+    case 'R':
+      if (document.getElementById('screen-timer').classList.contains('active')) {
+        resetTimer();
+      }
+      break;
+    case 'n':
+    case 'N':
+      // Switch to notes tab and focus input
+      showScreen('notes');
+      setTimeout(() => document.getElementById('note-input').focus(), 100);
+      break;
+  }
+});
 
 // ── SERVICE WORKER REGISTRATION ──────────────────────
 if ('serviceWorker' in navigator) {

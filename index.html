@@ -2151,7 +2151,7 @@ function editNote(id) {
       onclick="selectEditNoteType('${id}','${key}')">${t.emoji} ${t.label}</button>`
   ).join('');
   card.innerHTML = `
-    <div class="note-type-row" style="margin-bottom:10px;">${typePills}</div>
+    <div class="note-type-row-edit" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">${typePills}</div>
     <textarea class="note-edit-textarea" id="edit-ta-${id}" rows="4">${escHtml(n.text)}</textarea>
     <div class="note-edit-actions">
       <button class="btn-cancel" onclick="renderNotes()">cancel</button>

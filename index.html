@@ -400,11 +400,23 @@
     background: var(--bg2);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 14px 16px;
+    padding: 12px 16px;
     margin-bottom: 20px;
-    transition: border-color 0.2s;
+    transition: border-color 0.2s, padding 0.2s;
+    cursor: text;
   }
   .note-capture:focus-within { border-color: var(--border2); }
+  .note-type-row {
+    max-height: 0; overflow: hidden;
+    opacity: 0;
+    transition: max-height 0.25s ease, opacity 0.2s ease, margin 0.2s ease;
+    margin-bottom: 0;
+  }
+  .note-capture.expanded .note-type-row {
+    max-height: 80px;
+    opacity: 1;
+    margin-bottom: 10px;
+  }
   .note-textarea {
     width: 100%;
     background: transparent;
@@ -414,12 +426,22 @@
     font-size: 14px;
     color: var(--text);
     resize: none;
-    min-height: 60px;
     line-height: 1.6;
+    transition: min-height 0.25s ease;
+    min-height: 24px;
   }
+  .note-capture.expanded .note-textarea { min-height: 80px; }
   .note-textarea::placeholder { color: var(--text3); }
   .note-capture-footer {
     display: flex; justify-content: flex-end;
+    max-height: 0; overflow: hidden;
+    opacity: 0;
+    transition: max-height 0.25s ease, opacity 0.2s ease, margin 0.2s ease;
+    margin-top: 0;
+  }
+  .note-capture.expanded .note-capture-footer {
+    max-height: 48px;
+    opacity: 1;
     margin-top: 8px;
   }
   .btn-save {
@@ -1079,7 +1101,7 @@
       <button class="theme-toggle" onclick="toggleTheme()"><span id="theme-icon3">☾</span></button>
     </div>
   </div>
-  <div class="note-capture">
+  <div class="note-capture" id="note-capture-area" onclick="expandCapture()">
     <div class="note-type-row">
       <button class="note-type-pill active" id="type-general" onclick="selectNoteType('general')">📝 general</button>
       <button class="note-type-pill" id="type-idea" onclick="selectNoteType('idea')">💡 idea</button>
@@ -1087,7 +1109,10 @@
       <button class="note-type-pill" id="type-action" onclick="selectNoteType('action')">⚡ action</button>
     </div>
     <textarea class="note-textarea" id="note-input" placeholder="Capture a thought..."
-      onkeydown="if(event.ctrlKey&&event.key==='Enter') saveNote()" rows="3"></textarea>
+      onkeydown="if(event.ctrlKey&&event.key==='Enter') saveNote()"
+      onfocus="expandCapture()"
+      onblur="collapseCapture()"
+      rows="1"></textarea>
     <div class="note-capture-footer">
       <button class="btn-save" onclick="saveNote()">save</button>
     </div>
@@ -2167,6 +2192,23 @@ function saveEditNote(id) {
   save(); renderNotes();
 }
 
+function expandCapture() {
+  document.getElementById('note-capture-area').classList.add('expanded');
+}
+
+function collapseCapture() {
+  const inp = document.getElementById('note-input');
+  // Don't collapse if there's text
+  if (inp.value.trim()) return;
+  // Small delay so save button click still registers
+  setTimeout(() => {
+    const inp2 = document.getElementById('note-input');
+    if (!inp2.value.trim()) {
+      document.getElementById('note-capture-area').classList.remove('expanded');
+    }
+  }, 200);
+}
+
 function saveNote() {
   const inp = document.getElementById('note-input');
   const text = inp.value.trim();
@@ -2177,7 +2219,8 @@ function saveNote() {
     type: currentNoteType, typeEmoji: t.emoji, typeLabel: t.label
   });
   inp.value = '';
-  selectNoteType('general'); // reset to default
+  selectNoteType('general');
+  document.getElementById('note-capture-area').classList.remove('expanded');
   save(); renderNotes();
 }
 
@@ -2382,7 +2425,10 @@ document.addEventListener('keydown', e => {
     case 'N':
       // Switch to notes tab and focus input
       showScreen('notes');
-      setTimeout(() => document.getElementById('note-input').focus(), 100);
+      setTimeout(() => {
+        expandCapture();
+        document.getElementById('note-input').focus();
+      }, 100);
       break;
   }
 });

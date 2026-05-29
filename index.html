@@ -441,14 +441,7 @@
     padding: 14px 16px;
     animation: fadeIn 0.2s ease;
   }
-  .note-body {
-    font-size: 14px;
-    color: var(--text);
-    line-height: 1.6;
-    margin-bottom: 10px;
-    white-space: pre-wrap;
-    word-break: break-word;
-  }
+
   .note-footer {
     display: flex; justify-content: space-between; align-items: center;
   }
@@ -722,6 +715,35 @@
   }
   .autocomplete-item:last-child { border-bottom: none; }
   .autocomplete-item:hover { background: var(--bg2); }
+
+  /* ── NOTE COLLAPSE ── */
+  .note-body {
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.6;
+    margin-bottom: 10px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .note-body.collapsed {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .note-toggle {
+    background: none; border: none;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text3);
+    cursor: pointer;
+    padding: 0;
+    margin-bottom: 8px;
+    letter-spacing: 0.04em;
+    transition: color 0.2s;
+    display: block;
+  }
+  .note-toggle:hover { color: var(--text2); }
 
   /* ── NOTE EDIT ── */
   .note-edit-textarea {
@@ -2060,11 +2082,13 @@ function renderNotes() {
     const div = document.createElement('div');
     div.className = 'note-card';
     div.id = 'note-card-' + n.id;
+    const isLong = n.text.split('\n').length > 3 || n.text.length > 200;
     div.innerHTML = `
       ${n.typeEmoji ? `<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:6px;letter-spacing:0.04em;">${n.typeEmoji} ${n.typeLabel || ''}</div>` : ''}
-      <div class="note-body" id="note-body-${n.id}">${escHtml(n.text)}</div>
+      <div class="note-body collapsed" id="note-body-${n.id}">${escHtml(n.text)}</div>
+      ${isLong ? `<button class="note-toggle" id="note-toggle-${n.id}" onclick="toggleNoteCollapse('${n.id}')">show more ↓</button>` : ''}
       <div class="note-footer">
-        <span class="note-time">${n.time}</span>
+        <span class="note-time">${n.time}${n.edited ? ' · edited' : ''}</span>
         <div class="note-actions">
           <button class="note-action-btn" onclick="editNote('${n.id}')" title="Edit" aria-label="Edit note">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -2082,29 +2106,64 @@ function renderNotes() {
   });
 }
 
+function toggleNoteCollapse(id) {
+  const body = document.getElementById('note-body-' + id);
+  const btn = document.getElementById('note-toggle-' + id);
+  if (!body || !btn) return;
+  const isCollapsed = body.classList.contains('collapsed');
+  body.classList.toggle('collapsed', !isCollapsed);
+  btn.textContent = isCollapsed ? 'show less ↑' : 'show more ↓';
+}
+
 function editNote(id) {
   const n = S.data.notes.find(n => n.id === id);
   if (!n) return;
   const card = document.getElementById('note-card-' + id);
+  const currentType = n.type || 'general';
+  const typePills = Object.entries(NOTE_TYPES).map(([key, t]) =>
+    `<button class="note-type-pill${key === currentType ? ' active' : ''}"
+      id="edit-type-${id}-${key}"
+      onclick="selectEditNoteType('${id}','${key}')">${t.emoji} ${t.label}</button>`
+  ).join('');
   card.innerHTML = `
+    <div class="note-type-row" style="margin-bottom:10px;">${typePills}</div>
     <textarea class="note-edit-textarea" id="edit-ta-${id}" rows="4">${escHtml(n.text)}</textarea>
     <div class="note-edit-actions">
       <button class="btn-cancel" onclick="renderNotes()">cancel</button>
       <button class="btn-save" onclick="saveEditNote('${id}')">save</button>
     </div>
   `;
+  card.dataset.editType = currentType;
   const ta = document.getElementById('edit-ta-' + id);
   ta.focus();
   ta.setSelectionRange(ta.value.length, ta.value.length);
 }
 
+function selectEditNoteType(noteId, type) {
+  const card = document.getElementById('note-card-' + noteId);
+  card.dataset.editType = type;
+  Object.keys(NOTE_TYPES).forEach(key => {
+    const btn = document.getElementById(`edit-type-${noteId}-${key}`);
+    if (btn) btn.classList.toggle('active', key === type);
+  });
+}
+
 function saveEditNote(id) {
   const ta = document.getElementById('edit-ta-' + id);
+  const card = document.getElementById('note-card-' + id);
   if (!ta) return;
   const text = ta.value.trim();
   if (!text) return;
   const n = S.data.notes.find(n => n.id === id);
-  if (n) { n.text = text; n.edited = fmtTime(); }
+  if (n) {
+    n.text = text;
+    n.edited = fmtTime();
+    const newType = card?.dataset.editType || n.type || 'general';
+    const t = NOTE_TYPES[newType] || NOTE_TYPES.general;
+    n.type = newType;
+    n.typeEmoji = t.emoji;
+    n.typeLabel = t.label;
+  }
   save(); renderNotes();
 }
 

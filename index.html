@@ -723,6 +723,70 @@
   }
 
   /* ── AUTOCOMPLETE ── */
+  /* ── PROJECT PILLS ── */
+  .project-pills-row {
+    display: flex; gap: 6px; flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+  .project-pill {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-family: var(--font-mono);
+    font-size: 11px; color: var(--text2);
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .project-pill:hover { background: var(--bg3); }
+  .project-pill.active {
+    background: var(--accent); color: var(--accent-text);
+    border-color: var(--accent);
+  }
+  .project-pill-add {
+    background: none;
+    border: 1px dashed var(--border2);
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-family: var(--font-mono);
+    font-size: 11px; color: var(--text3);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .project-pill-add:hover { border-color: var(--text2); color: var(--text2); }
+  .project-add-row {
+    display: none; align-items: center; gap: 6px;
+    width: 100%; margin-top: 4px;
+  }
+  .project-add-row.show { display: flex; }
+  .project-add-input {
+    flex: 1;
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    padding: 5px 10px;
+    font-family: var(--font-sans);
+    font-size: 13px; color: var(--text);
+    outline: none;
+  }
+  .project-add-confirm {
+    background: var(--accent); border: none;
+    border-radius: var(--radius-sm);
+    padding: 5px 12px;
+    font-family: var(--font-mono);
+    font-size: 12px; color: var(--accent-text);
+    cursor: pointer;
+  }
+  .project-add-cancel {
+    background: none; border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 5px 10px;
+    font-family: var(--font-mono);
+    font-size: 12px; color: var(--text3);
+    cursor: pointer;
+  }
+
   .working-on-wrap { position: relative; margin-bottom: 20px; }
   .autocomplete-list {
     position: absolute; top: 100%; left: 0; right: 0;
@@ -995,6 +1059,32 @@
     margin-left: 4px;
   }
 
+  /* ── EFFORT RATING ── */
+  .effort-wrap {
+    margin-bottom: 24px;
+    text-align: center;
+    width: 280px;
+  }
+  .effort-label {
+    font-family: var(--font-mono);
+    font-size: 10px; color: var(--text3);
+    letter-spacing: 0.1em; text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .effort-emoji {
+    font-size: 32px; margin-bottom: 8px;
+    transition: all 0.2s;
+    display: block;
+  }
+  .effort-slider {
+    width: 100%; margin-bottom: 8px;
+  }
+  .effort-scale {
+    display: flex; justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 10px; color: var(--text3);
+  }
+
   /* Settings gear btn */
   .gear-btn {
     background: var(--bg2); border: 1px solid var(--border); border-radius: 20px;
@@ -1017,6 +1107,15 @@
         <span id="theme-icon">☾</span>
       </button>
     </div>
+  </div>
+
+  <div id="project-pills-row" class="project-pills-row"></div>
+  <div class="project-add-row" id="project-add-row">
+    <input class="project-add-input" id="project-add-input" type="text"
+      placeholder="Project name..." maxlength="20"
+      onkeydown="if(event.key==='Enter') confirmAddProject(); if(event.key==='Escape') cancelAddProject();">
+    <button class="project-add-confirm" onclick="confirmAddProject()">add</button>
+    <button class="project-add-cancel" onclick="cancelAddProject()">×</button>
   </div>
 
   <div class="working-on-wrap">
@@ -1199,7 +1298,20 @@
 <div class="break-overlay" id="break-overlay">
   <div class="break-title" id="break-label">SHORT BREAK</div>
   <div class="break-time" id="break-display">05:00</div>
-  <button class="btn-skip" onclick="skipBreak()">skip break →</button>
+
+  <div class="effort-wrap" id="effort-wrap" style="display:none;">
+    <div class="effort-label">how hard was that session?</div>
+    <span class="effort-emoji" id="effort-emoji">😐</span>
+    <input type="range" class="effort-slider" id="effort-slider"
+      min="1" max="5" value="3" step="1"
+      oninput="updateEffortEmoji(this.value)" aria-label="Session effort">
+    <div class="effort-scale"><span>easy</span><span>hard</span></div>
+  </div>
+
+  <div style="display:flex;gap:10px;align-items:center;">
+    <button class="btn-skip" id="skip-btn" onclick="skipBreak()">skip break →</button>
+    <button class="btn-skip" id="done-effort-btn" onclick="confirmEffort()" style="display:none;background:var(--accent);color:var(--accent-text);border-color:var(--accent);">done ✓</button>
+  </div>
 </div>
 
 <!-- SETTINGS MODAL -->
@@ -1294,9 +1406,12 @@ if (!S.data.sessions) S.data.sessions = [];
 if (!S.data.settings) S.data.settings = { theme: 'system', workMin: 25, shortMin: 5, longMin: 15, sound: null, volume: 50, lastTask: '' };
 if (!S.data.settings.workMin) { S.data.settings.workMin = 25; S.data.settings.shortMin = 5; S.data.settings.longMin = 15; }
 if (!S.data.settings.lastTask) S.data.settings.lastTask = '';
+if (!S.data.settings.projects) S.data.settings.projects = ['Work', 'Personal'];
+if (S.data.settings.lastProject === undefined) S.data.settings.lastProject = null;
 // Restore last task and timer durations
 S.timer.total = S.data.settings.workMin * 60;
 S.timer.remaining = S.data.settings.workMin * 60;
+S.timer.startTime = null; // wall clock start
 // Session count for long break trigger
 if (!S.data.settings.dailySessionCount) S.data.settings.dailySessionCount = 0;
 if (!S.data.settings.sessionCountDate) S.data.settings.sessionCountDate = '';
@@ -1334,6 +1449,7 @@ updatePomoCounter();
 // Restore last task
 const savedTask = S.data.settings.lastTask || '';
 if (savedTask) document.getElementById('working-on').value = savedTask;
+renderProjectPills();
 
 // Restore saved sound
 const savedSound = S.data.settings.sound;
@@ -1415,6 +1531,8 @@ function toggleTimer() {
   } else {
     S.timer.running = true;
     S.timer._startedAt = S.timer._startedAt || Date.now();
+    // Wall clock: record resume time, adjust for already-elapsed time
+    S.timer._wallStart = Date.now() - ((S.timer.total - S.timer.remaining) * 1000);
     document.getElementById('start-btn').textContent = 'pause';
     S.timer.interval = setInterval(tick, 1000);
   }
@@ -1424,7 +1542,13 @@ function toggleTimer() {
 }
 
 function tick() {
-  S.timer.remaining--;
+  // Use wall clock for accuracy — survives tab switching
+  if (S.timer._wallStart) {
+    const elapsed = Math.floor((Date.now() - S.timer._wallStart) / 1000);
+    S.timer.remaining = Math.max(0, S.timer.total - elapsed);
+  } else {
+    S.timer.remaining = Math.max(0, S.timer.remaining - 1);
+  }
   updateDisplay();
   if (S.timer.remaining <= 0) {
     clearInterval(S.timer.interval);
@@ -1438,9 +1562,10 @@ function onTimerEnd() {
     // Log session
     const label = document.getElementById('working-on').value.trim() || 'Untitled';
     const today = new Date().toDateString();
+    const project = S.data.settings.lastProject || null;
     const existing = S.data.sessions.find(s => s.label === label && s.date === today);
-    if (existing) { existing.count = (existing.count || 1) + 1; existing.lastTime = fmtTime(); }
-    else { S.data.sessions.push({ id: Date.now(), label, date: today, count: 1, lastTime: fmtTime() }); }
+    if (existing) { existing.count = (existing.count || 1) + 1; existing.lastTime = fmtTime(); if (project) existing.project = project; }
+    else { S.data.sessions.push({ id: Date.now(), label, project, date: today, count: 1, lastTime: fmtTime() }); }
     // Increment daily session count
     if (S.data.settings.sessionCountDate !== today) {
       S.data.settings.dailySessionCount = 0;
@@ -1507,6 +1632,13 @@ function startBreak(type) {
   const overlay = document.getElementById('break-overlay');
   overlay.classList.add('show');
   document.getElementById('break-label').textContent = type === 'short' ? 'SHORT BREAK' : 'LONG BREAK';
+  // Show effort rating
+  document.getElementById('effort-wrap').style.display = 'block';
+  document.getElementById('effort-slider').value = 3;
+  updateEffortEmoji(3);
+  document.getElementById('skip-btn').textContent = 'skip →';
+  document.getElementById('done-effort-btn').style.display = 'inline-block';
+  S.timer._pendingEffort = null;
   let rem = mins * 60;
   updateBreakDisplay(rem);
   S.timer._breakInterval = setInterval(() => {
@@ -1514,6 +1646,33 @@ function startBreak(type) {
     updateBreakDisplay(rem);
     if (rem <= 0) { clearInterval(S.timer._breakInterval); skipBreak(); }
   }, 1000);
+}
+
+const EFFORT_EMOJI = { 1:'😌', 2:'🙂', 3:'😐', 4:'😤', 5:'😓' };
+
+function updateEffortEmoji(val) {
+  document.getElementById('effort-emoji').textContent = EFFORT_EMOJI[val] || '😐';
+  S.timer._pendingEffort = parseInt(val);
+}
+
+function confirmEffort() {
+  saveEffortRating(S.timer._pendingEffort || 3);
+  skipBreak();
+}
+
+function saveEffortRating(rating) {
+  if (!rating) return;
+  const label = document.getElementById('working-on').value.trim() || 'Untitled';
+  const today = new Date().toDateString();
+  const session = S.data.sessions.find(s => s.label === label && s.date === today);
+  if (session) {
+    if (!session.effortRatings) session.effortRatings = [];
+    session.effortRatings.push(rating);
+    session.avgEffort = Math.round(
+      session.effortRatings.reduce((a,b)=>a+b,0) / session.effortRatings.length * 10
+    ) / 10;
+    save();
+  }
 }
 
 function updateBreakDisplay(rem) {
@@ -1526,6 +1685,8 @@ function skipBreak() {
   clearInterval(S.timer._breakInterval);
   const wasLongBreak = S.timer.mode === 'long';
   document.getElementById('break-overlay').classList.remove('show');
+  document.getElementById('effort-wrap').style.display = 'none';
+  document.getElementById('done-effort-btn').style.display = 'none';
   setMode('focus');
   updatePomoCounter(wasLongBreak);
 }
@@ -1535,6 +1696,7 @@ function resetTimer() {
   S.timer.running = false;
   S.timer.remaining = S.timer.total;
   S.timer._startedAt = null;
+  S.timer._wallStart = null;
   document.getElementById('start-btn').textContent = 'start';
   document.getElementById('done-btn').style.display = 'none';
   updateDisplay();
@@ -1794,6 +1956,96 @@ function importData(event) {
     event.target.value = '';
   };
   reader.readAsText(file);
+}
+
+// ── PROJECT TAGS ──────────────────────────────────────
+function renderProjectPills() {
+  const row = document.getElementById('project-pills-row');
+  if (!row) return;
+  const projects = S.data.settings.projects || [];
+  const active = S.data.settings.lastProject;
+  row.innerHTML = projects.map(p => `
+    <button class="project-pill${p === active ? ' active' : ''}"
+      onclick="selectProject('${escHtml(p)}')"
+      oncontextmenu="deleteProject(event,'${escHtml(p)}')"
+      ontouchstart="startLongPress(event,'${escHtml(p)}')"
+      ontouchend="cancelLongPress()"
+      ontouchmove="cancelLongPress()"
+      title="Long press to remove">${escHtml(p)}</button>
+  `).join('') + `<button class="project-pill-add" onclick="addProject()">+ add</button>`;
+}
+
+function getPureTask() {
+  // Extract pure task name without any project prefix
+  const inp = document.getElementById('working-on');
+  const val = inp.value;
+  const projects = S.data.settings.projects || [];
+  for (const p of projects) {
+    const prefix = p + ' · ';
+    if (val.startsWith(prefix)) return val.slice(prefix.length).trim();
+    if (val === p) return ''; // project only, no task
+  }
+  return val.trim();
+}
+
+function selectProject(name) {
+  const current = S.data.settings.lastProject;
+  const pureTask = getPureTask(); // always extract before changing
+
+  if (current === name) {
+    // Deselect — show pure task only
+    S.data.settings.lastProject = null;
+    document.getElementById('working-on').value = pureTask;
+  } else {
+    // Switch project — rebuild with new prefix + pure task
+    S.data.settings.lastProject = name;
+    document.getElementById('working-on').value = pureTask ? `${name} · ${pureTask}` : name;
+  }
+  S.data.settings.lastTask = document.getElementById('working-on').value;
+  save();
+  renderProjectPills();
+}
+
+// Long press for touch delete
+let _lpTimer = null;
+function startLongPress(e, name) {
+  _lpTimer = setTimeout(() => deleteProjectConfirm(name), 600);
+}
+function cancelLongPress() { clearTimeout(_lpTimer); }
+function deleteProject(e, name) {
+  e.preventDefault();
+  deleteProjectConfirm(name);
+}
+function deleteProjectConfirm(name) {
+  S.data.settings.projects = (S.data.settings.projects || []).filter(p => p !== name);
+  if (S.data.settings.lastProject === name) S.data.settings.lastProject = null;
+  save(); renderProjectPills();
+  toast(`Removed "${name}"`);
+}
+
+function addProject() {
+  document.getElementById('project-add-row').classList.add('show');
+  document.getElementById('project-add-input').value = '';
+  setTimeout(() => document.getElementById('project-add-input').focus(), 50);
+}
+
+function confirmAddProject() {
+  const inp = document.getElementById('project-add-input');
+  const trimmed = (inp.value || '').trim();
+  if (!trimmed) { cancelAddProject(); return; }
+  if ((S.data.settings.projects || []).includes(trimmed)) {
+    toast('Already exists'); cancelAddProject(); return;
+  }
+  S.data.settings.projects = [...(S.data.settings.projects || []), trimmed];
+  save();
+  cancelAddProject();
+  renderProjectPills();
+  toast(`Added "${trimmed}"`);
+}
+
+function cancelAddProject() {
+  document.getElementById('project-add-row').classList.remove('show');
+  document.getElementById('project-add-input').value = '';
 }
 
 // ── AUTOCOMPLETE ──────────────────────────────────────
@@ -2285,11 +2537,12 @@ function renderStats() {
     const row = document.createElement('div');
     row.className = 'session-row';
     const hasPartial = s.detail && s.detail.some(d => !d.complete);
-    const actualLabel = s.totalMinutes ? `${s.totalMinutes} min actual` : '';
+    const actualLabel = s.totalMinutes ? `${s.totalMinutes} min` : '';
+    const effortLabel = s.avgEffort ? `${EFFORT_EMOJI[Math.round(s.avgEffort)]} ${s.avgEffort}` : '';
     row.innerHTML = `
       <span class="session-task">${escHtml(s.label)}${hasPartial ? ' <span class="session-partial">partial</span>' : ''}</span>
       <div class="session-meta">
-        <div class="session-count">${s.count}× · ${actualLabel}</div>
+        <div class="session-count">${s.count}× · ${actualLabel} ${effortLabel}</div>
         <div>${s.lastTime || ''}</div>
       </div>
     `;
@@ -2351,8 +2604,28 @@ function renderWeekStats() {
     taskMinMap[s.label] = (taskMinMap[s.label] || 0) + actual;
   });
   const sorted = Object.entries(taskMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  // Project breakdown
+  const projectMap = {};
+  S.data.sessions.filter(s => weekDates.has(s.date)).forEach(s => {
+    const proj = s.project || 'Other';
+    if (!projectMap[proj]) projectMap[proj] = { count: 0, mins: 0 };
+    projectMap[proj].count += (s.count || 1);
+    projectMap[proj].mins += (s.totalMinutes || (s.count||1) * focusMinsW);
+  });
+  const projEl = document.getElementById('week-task-list');
+  const projHtml = Object.entries(projectMap).sort((a,b)=>b[1].count-a[1].count).map(([proj,d]) => `
+    <div class="session-row">
+      <span class="session-task" style="font-weight:500;">${escHtml(proj)}</span>
+      <div class="session-meta">
+        <div class="session-count">${d.count}× sessions</div>
+        <div>${d.mins} min</div>
+      </div>
+    </div>
+  `).join('');
+
   const taskEl = document.getElementById('week-task-list');
-  taskEl.innerHTML = sorted.length ? sorted.map(([label,count]) => `
+  taskEl.innerHTML = (projHtml ? `<div style="padding:8px 16px;font-family:var(--font-mono);font-size:10px;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;">by project</div>${projHtml}<div style="padding:8px 16px;font-family:var(--font-mono);font-size:10px;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;border-top:1px solid var(--border);">top tasks</div>` : '') +
+  (sorted.length ? sorted.map(([label,count]) => `
     <div class="session-row">
       <span class="session-task">${escHtml(label)}</span>
       <div class="session-meta">
@@ -2360,7 +2633,7 @@ function renderWeekStats() {
         <div>${taskMinMap[label] || count * focusMinsW} min</div>
       </div>
     </div>
-  `).join('') : '<div class="empty-state" style="padding:20px;">no sessions this week</div>';
+  `).join('') : '') || '<div class="empty-state" style="padding:20px;">no sessions this week</div>';
 }
 
 function clearStats() {
@@ -2430,6 +2703,20 @@ document.addEventListener('keydown', e => {
         document.getElementById('note-input').focus();
       }, 100);
       break;
+  }
+});
+
+// ── PAGE VISIBILITY — sync timer when tab becomes active ──
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && S.timer.running && S.timer._wallStart) {
+    const elapsed = Math.floor((Date.now() - S.timer._wallStart) / 1000);
+    S.timer.remaining = Math.max(0, S.timer.total - elapsed);
+    updateDisplay();
+    if (S.timer.remaining <= 0) {
+      clearInterval(S.timer.interval);
+      S.timer.running = false;
+      onTimerEnd();
+    }
   }
 });
 

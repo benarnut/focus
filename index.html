@@ -1417,26 +1417,41 @@ function onTimerEnd() {
   }
 }
 
-function updatePomoCounter() {
+function updatePomoCounter(afterLongBreak = false) {
   const today = new Date().toDateString();
-  if (S.data.settings.sessionCountDate !== today) return;
+  if (S.data.settings.sessionCountDate !== today) {
+    // New day — reset all dots
+    for (let i = 1; i <= 4; i++) {
+      const dot = document.getElementById('pomo-dot-' + i);
+      if (dot) dot.className = 'pomo-dot';
+    }
+    const label = document.getElementById('pomo-label');
+    if (label) label.textContent = '0 / 4';
+    return;
+  }
   const count = S.data.settings.dailySessionCount || 0;
-  const posInCycle = count % 4; // 0 = just finished 4th
+  const posInCycle = count % 4;
+
   for (let i = 1; i <= 4; i++) {
     const dot = document.getElementById('pomo-dot-' + i);
     if (!dot) continue;
     dot.className = 'pomo-dot';
-    if (posInCycle === 0 && count > 0) {
-      // Just completed a full cycle — briefly show all done
+    if (!afterLongBreak && posInCycle === 0 && count > 0) {
+      // Cycle just completed — show all green briefly
       dot.classList.add('long');
-    } else if (i <= posInCycle) {
+    } else if (!afterLongBreak && i <= posInCycle) {
       dot.classList.add('done');
     }
+    // afterLongBreak = true → all dots reset to empty (0/4)
   }
   const label = document.getElementById('pomo-label');
   if (label) {
-    const inCycle = posInCycle === 0 && count > 0 ? 4 : posInCycle;
-    label.textContent = inCycle + ' / 4';
+    if (afterLongBreak) {
+      label.textContent = '0 / 4';
+    } else {
+      const inCycle = posInCycle === 0 && count > 0 ? 4 : posInCycle;
+      label.textContent = inCycle + ' / 4';
+    }
   }
 }
 
@@ -1462,8 +1477,10 @@ function updateBreakDisplay(rem) {
 
 function skipBreak() {
   clearInterval(S.timer._breakInterval);
+  const wasLongBreak = S.timer.mode === 'long';
   document.getElementById('break-overlay').classList.remove('show');
   setMode('focus');
+  updatePomoCounter(wasLongBreak);
 }
 
 function resetTimer() {
@@ -2143,8 +2160,11 @@ function renderStats() {
   const today = new Date().toDateString();
   const sessions = S.data.sessions.filter(s => s.date === today);
   const total = sessions.reduce((a, s) => a + (s.count || 1), 0);
+  // Use actual recorded minutes if available, fallback to workMin × count
   const focusMins = S.data.settings.workMin || 25;
-  const mins = total * focusMins;
+  const mins = sessions.reduce((a, s) => {
+    return a + (s.totalMinutes || (s.count || 1) * focusMins);
+  }, 0);
   document.getElementById('stat-count').textContent = total;
   if (mins >= 60) {
     document.getElementById('stat-time').textContent = (mins/60).toFixed(1);
@@ -2189,6 +2209,12 @@ function renderWeekStats() {
     const sessions = S.data.sessions.filter(s => s.date === w.dateStr);
     return sessions.reduce((a,s) => a + (s.count||1), 0);
   });
+  // Actual minutes per day using totalMinutes if available
+  const focusMinsW = S.data.settings.workMin || 25;
+  const actualMinsPerDay = week.map(w => {
+    const sessions = S.data.sessions.filter(s => s.date === w.dateStr);
+    return sessions.reduce((a,s) => a + (s.totalMinutes || (s.count||1) * focusMinsW), 0);
+  });
   const maxCount = Math.max(...counts, 1);
   // Render bars
   const barsEl = document.getElementById('week-bars');
@@ -2201,7 +2227,7 @@ function renderWeekStats() {
   `).join('');
   // Week totals
   const weekTotal = counts.reduce((a,b)=>a+b,0);
-  const weekMins = weekTotal * focusMins;
+  const weekMins = actualMinsPerDay.reduce((a,b)=>a+b,0);
   document.getElementById('stat-week-count').textContent = weekTotal;
   if (weekMins >= 60) {
     document.getElementById('stat-week-time').textContent = (weekMins/60).toFixed(1);
@@ -2216,6 +2242,12 @@ function renderWeekStats() {
   S.data.sessions.filter(s => weekDates.has(s.date)).forEach(s => {
     taskMap[s.label] = (taskMap[s.label] || 0) + (s.count||1);
   });
+  // Build task map with actual minutes
+  const taskMinMap = {};
+  S.data.sessions.filter(s => weekDates.has(s.date)).forEach(s => {
+    const actual = s.totalMinutes || (s.count||1) * focusMinsW;
+    taskMinMap[s.label] = (taskMinMap[s.label] || 0) + actual;
+  });
   const sorted = Object.entries(taskMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
   const taskEl = document.getElementById('week-task-list');
   taskEl.innerHTML = sorted.length ? sorted.map(([label,count]) => `
@@ -2223,7 +2255,7 @@ function renderWeekStats() {
       <span class="session-task">${escHtml(label)}</span>
       <div class="session-meta">
         <div class="session-count">${count}× total</div>
-        <div>${count * focusMins} min</div>
+        <div>${taskMinMap[label] || count * focusMinsW} min</div>
       </div>
     </div>
   `).join('') : '<div class="empty-state" style="padding:20px;">no sessions this week</div>';

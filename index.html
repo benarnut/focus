@@ -1325,8 +1325,12 @@
         <div class="stat-sub" id="stat-week-unit">min</div>
       </div>
     </div>
-    <div class="session-log">
-      <div class="session-log-header">top tasks this week</div>
+    <div class="session-log" id="week-project-card">
+      <div class="session-log-header">by project</div>
+      <div id="week-project-list"></div>
+    </div>
+    <div class="session-log" id="week-task-card" style="margin-top:10px;">
+      <div class="session-log-header">top tasks</div>
       <div id="week-task-list"></div>
     </div>
   </div>
@@ -2852,7 +2856,6 @@ function renderWeekStats() {
     projectMap[proj].count += (s.count || 1);
     projectMap[proj].mins += (s.totalMinutes || (s.count||1) * focusMinsW);
   });
-  const projEl = document.getElementById('week-task-list');
   const projHtml = Object.entries(projectMap).sort((a,b)=>b[1].count-a[1].count).map(([proj,d]) => `
     <div class="session-row">
       <span class="session-task" style="font-weight:500;">${escHtml(proj)}</span>
@@ -2863,9 +2866,17 @@ function renderWeekStats() {
     </div>
   `).join('');
 
+  // Project card
+  const projEl = document.getElementById('week-project-list');
+  const projCard = document.getElementById('week-project-card');
+  if (projEl) {
+    projEl.innerHTML = projHtml || '<div class="empty-state" style="padding:20px;">no sessions this week</div>';
+    if (projCard) projCard.style.display = projHtml ? 'block' : 'none';
+  }
+
+  // Top tasks card
   const taskEl = document.getElementById('week-task-list');
-  taskEl.innerHTML = (projHtml ? `<div style="padding:8px 16px;font-family:var(--font-mono);font-size:10px;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;">by project</div>${projHtml}<div style="padding:16px 16px 8px;font-family:var(--font-mono);font-size:10px;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;border-top:2px solid var(--bg3);margin-top:4px;">top tasks</div>` : '') +
-  (sorted.length ? sorted.map(([label,count]) => `
+  taskEl.innerHTML = sorted.length ? sorted.map(([label,count]) => `
     <div class="session-row">
       <span class="session-task">${escHtml(label)}</span>
       <div class="session-meta">
@@ -2873,7 +2884,7 @@ function renderWeekStats() {
         <div>${taskMinMap[label] || count * focusMinsW} min</div>
       </div>
     </div>
-  `).join('') : '') || '<div class="empty-state" style="padding:20px;">no sessions this week</div>';
+  `).join('') : '<div class="empty-state" style="padding:20px;">no top tasks this week</div>';
 }
 
 function clearStats() {

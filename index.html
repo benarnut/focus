@@ -590,46 +590,67 @@
   }
   .toast.show { opacity: 1; }
 
-  /* BREAK OVERLAY */
+  /* BREAK MINI BAR */
   .break-overlay {
     display: none;
-    position: fixed; inset: 0;
-    background: var(--bg);
+    position: fixed;
+    top: 0; left: 50%; transform: translateX(-50%);
+    width: 100%; max-width: 480px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border2);
     z-index: 300;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    text-align: center;
+    padding: 10px 20px 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
   }
   .break-overlay.show { display: flex; }
+  .break-mini-row {
+    display: flex; align-items: center;
+    justify-content: space-between;
+    width: 100%; gap: 12px;
+  }
   .break-title {
     font-family: var(--font-mono);
-    font-size: 13px;
+    font-size: 10px;
     color: var(--text3);
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    margin-bottom: 12px;
+    flex-shrink: 0;
   }
   .break-time {
     font-family: var(--font-mono);
-    font-size: 60px;
+    font-size: 22px;
     font-weight: 300;
     color: var(--text);
-    letter-spacing: -2px;
-    margin-bottom: 32px;
+    letter-spacing: -0.5px;
+    flex: 1;
+    text-align: center;
   }
   .btn-skip {
     background: none;
     border: 1px solid var(--border2);
-    border-radius: var(--radius);
-    padding: 11px 28px;
+    border-radius: var(--radius-sm);
+    padding: 6px 14px;
     font-family: var(--font-mono);
-    font-size: 13px;
+    font-size: 12px;
     color: var(--text2);
     cursor: pointer;
+    flex-shrink: 0;
     transition: all 0.2s;
+    white-space: nowrap;
   }
-  .btn-skip:hover { background: var(--bg2); }
+  .btn-skip:hover { background: var(--bg3); }
+  .break-effort-row {
+    display: flex; align-items: center; gap: 10px;
+    width: 100%; margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+  /* Offset all screens when mini bar is active */
+  body.break-active .screen {
+    padding-top: calc(24px + 80px);
+  }
 
   @keyframes fadeIn {
     from { opacity: 0; transform: translateY(6px); }
@@ -823,6 +844,49 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+  /* ── MARKDOWN STYLES ── */
+  .note-md h1, .note-md h2, .note-md h3 {
+    font-family: var(--font-sans);
+    color: var(--text);
+    margin: 8px 0 4px;
+    line-height: 1.3;
+  }
+  .note-md h1 { font-size: 16px; font-weight: 500; }
+  .note-md h2 { font-size: 14px; font-weight: 500; }
+  .note-md h3 { font-size: 13px; font-weight: 500; }
+  .note-md p { margin: 2px 0; line-height: 1.6; }
+  .note-md ul, .note-md ol {
+    padding-left: 18px; margin: 4px 0;
+  }
+  .note-md li { margin: 0 !important; line-height: 1.6; }
+  .note-md li > p { margin: 0 !important; display: inline; }
+  .note-md li + li { margin-top: 0 !important; }
+  .note-md strong { font-weight: 600; color: var(--text); }
+  .note-md em { font-style: italic; }
+  .note-md code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: var(--bg3);
+    border-radius: 3px;
+    padding: 1px 5px;
+    color: var(--text);
+  }
+  .note-md pre {
+    background: var(--bg3);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    overflow-x: auto;
+    margin: 6px 0;
+  }
+  .note-md pre code { background: none; padding: 0; }
+  .note-md blockquote {
+    border-left: 3px solid var(--border2);
+    padding-left: 10px;
+    color: var(--text2);
+    margin: 4px 0;
+  }
+  .note-md a { color: var(--text2); text-decoration: underline; }
+
   .note-toggle {
     background: none; border: none;
     font-family: var(--font-mono);
@@ -1142,6 +1206,57 @@
     margin-top: 8px;
   }
 
+  /* ── HEATMAP ── */
+  .heatmap-wrap {
+    background: var(--bg2);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 20px;
+  }
+  .heatmap-title {
+    font-family: var(--font-mono);
+    font-size: 10px; color: var(--text3);
+    letter-spacing: 0.08em; text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .heatmap-grid {
+    display: grid;
+    grid-template-columns: repeat(18, 1fr);
+    gap: 3px;
+    margin-bottom: 6px;
+  }
+  .heatmap-cell {
+    aspect-ratio: 1;
+    border-radius: 2px;
+    background: var(--bg3);
+    transition: background 0.2s;
+    position: relative;
+  }
+  .heatmap-labels {
+    display: grid;
+    grid-template-columns: repeat(18, 1fr);
+    gap: 3px;
+  }
+  .heatmap-label {
+    font-family: var(--font-mono);
+    font-size: 8px; color: var(--text3);
+    text-align: center;
+  }
+  .heatmap-legend {
+    display: flex; align-items: center; gap: 6px;
+    margin-top: 8px; justify-content: flex-end;
+  }
+  .heatmap-legend-label {
+    font-family: var(--font-mono);
+    font-size: 9px; color: var(--text3);
+  }
+  .heatmap-legend-cells {
+    display: flex; gap: 2px;
+  }
+  .heatmap-legend-cell {
+    width: 10px; height: 10px; border-radius: 2px;
+  }
+
   /* Settings gear btn */
   .gear-btn {
     background: var(--bg2); border: 1px solid var(--border); border-radius: 20px;
@@ -1151,6 +1266,7 @@
   .gear-btn:hover { background: var(--bg3); }
   .header-actions { display: flex; gap: 6px; align-items: center; }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 </head>
 <body>
 
@@ -1313,6 +1429,16 @@
     <div class="week-bar-chart">
       <div class="week-bars" id="week-bars"></div>
     </div>
+    <div class="heatmap-wrap">
+      <div class="heatmap-title">peak focus hours</div>
+      <div class="heatmap-grid" id="heatmap-grid"></div>
+      <div class="heatmap-labels" id="heatmap-labels"></div>
+      <div class="heatmap-legend">
+        <span class="heatmap-legend-label">less</span>
+        <div class="heatmap-legend-cells" id="heatmap-legend"></div>
+        <span class="heatmap-legend-label">more</span>
+      </div>
+    </div>
     <div class="stats-grid">
       <div class="stat-card">
         <div class="stat-label">week total</div>
@@ -1356,23 +1482,21 @@
   </button>
 </nav>
 
-<!-- BREAK OVERLAY -->
+<!-- BREAK MINI BAR -->
 <div class="break-overlay" id="break-overlay">
-  <div class="break-title" id="break-label">SHORT BREAK</div>
-  <div class="break-time" id="break-display">05:00</div>
-
-  <div class="effort-wrap" id="effort-wrap" style="display:none;">
-    <div class="effort-label">how hard was that session?</div>
-    <span class="effort-emoji" id="effort-emoji">😐</span>
-    <input type="range" class="effort-slider" id="effort-slider"
-      min="1" max="5" value="3" step="1"
-      oninput="updateEffortEmoji(this.value)" aria-label="Session effort">
-    <div class="effort-scale"><span>easy</span><span>hard</span></div>
+  <div class="break-mini-row">
+    <div class="break-title" id="break-label">SHORT BREAK</div>
+    <div class="break-time" id="break-display">05:00</div>
+    <button class="btn-skip" id="skip-btn" onclick="skipBreak()">skip →</button>
   </div>
-
-  <div style="display:flex;gap:10px;align-items:center;">
-    <button class="btn-skip" id="skip-btn" onclick="skipBreak()">skip break →</button>
-    <button class="btn-skip" id="done-effort-btn" onclick="confirmEffort()" style="display:none;background:var(--accent);color:var(--accent-text);border-color:var(--accent);">done ✓</button>
+  <!-- Effort row -->
+  <div class="break-effort-row" id="effort-wrap" style="display:none;">
+    <span class="effort-emoji" id="effort-emoji" style="font-size:20px;">😐</span>
+    <input type="range" class="effort-slider" id="effort-slider"
+      min="1" max="5" value="3" step="1" style="flex:1;"
+      oninput="updateEffortEmoji(this.value)" aria-label="Session effort">
+    <button class="btn-skip" id="done-effort-btn" onclick="confirmEffort()"
+      style="background:var(--accent);color:var(--accent-text);border-color:var(--accent);">done ✓</button>
   </div>
 </div>
 
@@ -1527,6 +1651,48 @@
         </div>
       </div>
       <div class="help-tip">ใช้งานได้เมื่อไม่มี input field ถูก focus อยู่</div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-section-title">☰ Break Mini Bar</div>
+      <div class="help-item">
+        <span class="help-icon">☰</span>
+        <div class="help-text">
+          <strong>ใช้งานระหว่าง break</strong>
+          <span>break overlay กลายเป็น bar เล็กด้านบน — สลับไป Notes หรือ Todo ได้เลยโดยไม่ต้อง skip break</span>
+        </div>
+      </div>
+      <div class="help-item">
+        <span class="help-icon">😌</span>
+        <div class="help-text">
+          <strong>Effort Rating</strong>
+          <span>เลื่อน slider ใน bar → กด <b>done ✓</b> บันทึก effort (break ยังนับต่อ) · กด <b>skip →</b> เพื่อข้าม break ทั้งหมด</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-section-title">🔥 Focus Heatmap</div>
+      <div class="help-item">
+        <span class="help-icon">🔥</span>
+        <div class="help-text">
+          <strong>Peak focus hours</strong>
+          <span>ดูใน Stats → This Week — grid 6:00–23:00 สีเข้ม = focus เยอะ วาง งานสำคัญ ในช่วงสีเข้มที่สุด</span>
+        </div>
+      </div>
+      <div class="help-tip">ข้อมูลสะสมจากทุก sessions — ยิ่งใช้นานยิ่งแม่นยำ</div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-section-title">📝 Markdown ใน Notes</div>
+      <div class="help-item">
+        <span class="help-icon">✍️</span>
+        <div class="help-text">
+          <strong>พิมพ์ Markdown ได้เลย</strong>
+          <span><b># หัวข้อ</b> · <b>* bullet</b> · <b>**bold**</b> · <code>` code `</code> — แสดงผลถูกต้องใน view mode</span>
+        </div>
+      </div>
+      <div class="help-tip">Edit mode และ Export .md ยังเป็น raw markdown เหมือนเดิม</div>
     </div>
 
   </div>
@@ -1781,9 +1947,17 @@ function onTimerEnd() {
     const label = document.getElementById('working-on').value.trim() || 'Untitled';
     const today = new Date().toDateString();
     const project = S.data.settings.lastProject || null;
+    const sessionStartHour = new Date().getHours();
     const existing = S.data.sessions.find(s => s.label === label && s.date === today);
-    if (existing) { existing.count = (existing.count || 1) + 1; existing.lastTime = fmtTime(); if (project) existing.project = project; }
-    else { S.data.sessions.push({ id: Date.now(), label, project, date: today, count: 1, lastTime: fmtTime() }); }
+    if (existing) {
+      existing.count = (existing.count || 1) + 1;
+      existing.lastTime = fmtTime();
+      if (project) existing.project = project;
+      if (!existing.startHours) existing.startHours = [];
+      existing.startHours.push(sessionStartHour);
+    } else {
+      S.data.sessions.push({ id: Date.now(), label, project, date: today, count: 1, lastTime: fmtTime(), startHours: [sessionStartHour] });
+    }
     // Increment daily session count
     if (S.data.settings.sessionCountDate !== today) {
       S.data.settings.dailySessionCount = 0;
@@ -1850,6 +2024,7 @@ function startBreak(type) {
   const overlay = document.getElementById('break-overlay');
   overlay.classList.add('show');
   document.getElementById('break-label').textContent = type === 'short' ? 'SHORT BREAK' : 'LONG BREAK';
+  document.body.classList.add('break-active');
   // Show effort rating
   document.getElementById('effort-wrap').style.display = 'block';
   document.getElementById('effort-slider').value = 3;
@@ -1909,6 +2084,7 @@ function skipBreak() {
   document.getElementById('break-overlay').classList.remove('show');
   document.getElementById('effort-wrap').style.display = 'none';
   document.getElementById('done-effort-btn').style.display = 'none';
+  document.body.classList.remove('break-active');
   setMode('focus');
   updatePomoCounter(wasLongBreak);
 }
@@ -2576,6 +2752,22 @@ function reorderTodo(srcId, targetId) {
 
 renderTodos();
 
+// ── MARKDOWN HELPER ──────────────────────────────────
+function renderMarkdown(text) {
+  if (typeof marked === 'undefined') return escHtml(text);
+  try {
+    marked.setOptions({ breaks: false, gfm: true });
+    let raw = marked.parse(text);
+    // Remove <p> tags inside <li> to prevent extra spacing
+    raw = raw.replace(/<li><p>([\s\S]*?)<\/p><\/li>/g, '<li>$1</li>');
+    raw = raw.replace(/<li>\s*<p>/g, '<li>').replace(/<\/p>\s*<\/li>/g, '</li>');
+    // Strip script tags for safety
+    return raw.replace(/<script[\s\S]*?<\/script>/gi, '');
+  } catch(e) {
+    return escHtml(text);
+  }
+}
+
 // ── NOTE TYPE ─────────────────────────────────────────
 let currentNoteType = 'general';
 const NOTE_TYPES = {
@@ -2603,10 +2795,12 @@ function renderNotes() {
     const div = document.createElement('div');
     div.className = 'note-card';
     div.id = 'note-card-' + n.id;
+    const mdHtml = renderMarkdown(n.text);
+    // Count lines from rendered HTML for collapse detection
     const isLong = n.text.split('\n').length > 3 || n.text.length > 200;
     div.innerHTML = `
       ${n.typeEmoji ? `<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:6px;letter-spacing:0.04em;">${n.typeEmoji} ${n.typeLabel || ''}</div>` : ''}
-      <div class="note-body collapsed" id="note-body-${n.id}">${escHtml(n.text)}</div>
+      <div class="note-body note-md collapsed" id="note-body-${n.id}">${mdHtml}</div>
       ${isLong ? `<button class="note-toggle" id="note-toggle-${n.id}" onclick="toggleNoteCollapse('${n.id}')">show more ↓</button>` : ''}
       <div class="note-footer">
         <span class="note-time">${n.time}${n.edited ? ' · edited' : ''}</span>
@@ -2746,12 +2940,19 @@ function exportAllNotes() {
 renderNotes();
 
 // ── STATS ──────────────────────────────────────────────
+function fmtMins(mins) {
+  if (!mins || mins <= 0) return '0 min';
+  if (mins < 60) return `${mins} min`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}
 function switchStatsTab(tab) {
   document.getElementById('tab-today').classList.toggle('active', tab === 'today');
   document.getElementById('tab-week').classList.toggle('active', tab === 'week');
   document.getElementById('stats-today-view').style.display = tab === 'today' ? 'block' : 'none';
   document.getElementById('stats-week-view').style.display = tab === 'week' ? 'block' : 'none';
-  if (tab === 'week') renderWeekStats();
+  if (tab === 'week') { renderWeekStats(); renderHeatmap(); }
 }
 
 function renderStats() {
@@ -2764,13 +2965,8 @@ function renderStats() {
     return a + (s.totalMinutes || (s.count || 1) * focusMins);
   }, 0);
   document.getElementById('stat-count').textContent = total;
-  if (mins >= 60) {
-    document.getElementById('stat-time').textContent = (mins/60).toFixed(1);
-    document.getElementById('stat-time-unit').textContent = 'hours today';
-  } else {
-    document.getElementById('stat-time').textContent = mins;
-    document.getElementById('stat-time-unit').textContent = 'min today';
-  }
+  document.getElementById('stat-time').textContent = fmtMins(mins);
+  document.getElementById('stat-time-unit').textContent = 'today';
   const logEl = document.getElementById('session-log-list');
   logEl.innerHTML = '';
   if (sessions.length === 0) {
@@ -2781,7 +2977,7 @@ function renderStats() {
     const row = document.createElement('div');
     row.className = 'session-row';
     const hasPartial = s.detail && s.detail.some(d => !d.complete);
-    const actualLabel = s.totalMinutes ? `${s.totalMinutes} min` : '';
+    const actualLabel = s.totalMinutes ? fmtMins(s.totalMinutes) : '';
     const effortLabel = s.avgEffort ? `${EFFORT_EMOJI[Math.round(s.avgEffort)]} ${s.avgEffort}` : '';
     row.innerHTML = `
       <span class="session-task">${escHtml(s.label)}${hasPartial ? ' <span class="session-partial">partial</span>' : ''}</span>
@@ -2792,6 +2988,57 @@ function renderStats() {
     `;
     logEl.appendChild(row);
   });
+}
+
+function renderHeatmap() {
+  const HOURS = Array.from({length:18}, (_,i) => i + 6); // 6:00–23:00
+  const counts = {};
+  HOURS.forEach(h => counts[h] = 0);
+
+  // Count all session start hours
+  S.data.sessions.forEach(s => {
+    if (s.startHours) s.startHours.forEach(h => {
+      if (counts[h] !== undefined) counts[h]++;
+    });
+  });
+
+  const maxCount = Math.max(...Object.values(counts), 1);
+
+  // Render cells
+  const grid = document.getElementById('heatmap-grid');
+  const labels = document.getElementById('heatmap-labels');
+  const legend = document.getElementById('heatmap-legend');
+  if (!grid) return;
+
+  grid.innerHTML = '';
+  labels.innerHTML = '';
+
+  const getColor = (val) => {
+    const intensity = val / maxCount;
+    if (intensity === 0) return 'var(--bg3)';
+    if (intensity < 0.25) return '#c6e3d4';
+    if (intensity < 0.5) return '#7ec8a0';
+    if (intensity < 0.75) return '#3aaa6b';
+    return '#1d7a47';
+  };
+
+  HOURS.forEach(h => {
+    const cell = document.createElement('div');
+    cell.className = 'heatmap-cell';
+    cell.style.background = getColor(counts[h]);
+    cell.title = `${h}:00 — ${counts[h]} session${counts[h]!==1?'s':''}`;
+    grid.appendChild(cell);
+
+    const lbl = document.createElement('div');
+    lbl.className = 'heatmap-label';
+    lbl.textContent = h % 3 === 0 ? `${h}` : '';
+    labels.appendChild(lbl);
+  });
+
+  // Legend
+  legend.innerHTML = ['var(--bg3)', '#c6e3d4', '#7ec8a0', '#3aaa6b', '#1d7a47'].map(c =>
+    `<div class="heatmap-legend-cell" style="background:${c}"></div>`
+  ).join('');
 }
 
 function renderWeekStats() {
@@ -2828,13 +3075,8 @@ function renderWeekStats() {
   const weekTotal = counts.reduce((a,b)=>a+b,0);
   const weekMins = actualMinsPerDay.reduce((a,b)=>a+b,0);
   document.getElementById('stat-week-count').textContent = weekTotal;
-  if (weekMins >= 60) {
-    document.getElementById('stat-week-time').textContent = (weekMins/60).toFixed(1);
-    document.getElementById('stat-week-unit').textContent = 'hours';
-  } else {
-    document.getElementById('stat-week-time').textContent = weekMins;
-    document.getElementById('stat-week-unit').textContent = 'min';
-  }
+  document.getElementById('stat-week-time').textContent = fmtMins(weekMins);
+  document.getElementById('stat-week-unit').textContent = 'focus';
   // Top tasks this week
   const weekDates = new Set(week.map(w => w.dateStr));
   const taskMap = {};
@@ -2856,15 +3098,26 @@ function renderWeekStats() {
     projectMap[proj].count += (s.count || 1);
     projectMap[proj].mins += (s.totalMinutes || (s.count||1) * focusMinsW);
   });
-  const projHtml = Object.entries(projectMap).sort((a,b)=>b[1].count-a[1].count).map(([proj,d]) => `
+  // Calc avg effort per project
+  const projEffortMap = {};
+  S.data.sessions.filter(s => weekDates.has(s.date)).forEach(s => {
+    const proj = s.project || 'Other';
+    if (!projEffortMap[proj]) projEffortMap[proj] = [];
+    if (s.avgEffort) projEffortMap[proj].push(s.avgEffort);
+  });
+
+  const projHtml = Object.entries(projectMap).sort((a,b)=>b[1].count-a[1].count).map(([proj,d]) => {
+    const efforts = projEffortMap[proj] || [];
+    const avgE = efforts.length ? Math.round(efforts.reduce((a,b)=>a+b,0)/efforts.length*10)/10 : null;
+    const effortStr = avgE ? ` · ${EFFORT_EMOJI[Math.round(avgE)]} ${avgE}` : '';
+    return `
     <div class="session-row">
       <span class="session-task" style="font-weight:500;">${escHtml(proj)}</span>
       <div class="session-meta">
-        <div class="session-count">${d.count}× sessions</div>
-        <div>${d.mins} min</div>
+        <div class="session-count">${d.count}× · ${fmtMins(d.mins)}${effortStr}</div>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 
   // Project card
   const projEl = document.getElementById('week-project-list');
@@ -2876,15 +3129,25 @@ function renderWeekStats() {
 
   // Top tasks card
   const taskEl = document.getElementById('week-task-list');
-  taskEl.innerHTML = sorted.length ? sorted.map(([label,count]) => `
+  // Calc avg effort per task
+  const taskEffortMap = {};
+  S.data.sessions.filter(s => weekDates.has(s.date)).forEach(s => {
+    if (!taskEffortMap[s.label]) taskEffortMap[s.label] = [];
+    if (s.avgEffort) taskEffortMap[s.label].push(s.avgEffort);
+  });
+
+  taskEl.innerHTML = sorted.length ? sorted.map(([label,count]) => {
+    const efforts = taskEffortMap[label] || [];
+    const avgE = efforts.length ? Math.round(efforts.reduce((a,b)=>a+b,0)/efforts.length*10)/10 : null;
+    const effortStr = avgE ? ` · ${EFFORT_EMOJI[Math.round(avgE)]} ${avgE}` : '';
+    return `
     <div class="session-row">
       <span class="session-task">${escHtml(label)}</span>
       <div class="session-meta">
-        <div class="session-count">${count}× total</div>
-        <div>${taskMinMap[label] || count * focusMinsW} min</div>
+        <div class="session-count">${count}× · ${fmtMins(taskMinMap[label] || count * focusMinsW)}${effortStr}</div>
       </div>
-    </div>
-  `).join('') : '<div class="empty-state" style="padding:20px;">no top tasks this week</div>';
+    </div>`;
+  }).join('') : '<div class="empty-state" style="padding:20px;">no top tasks this week</div>';
 }
 
 function clearStats() {

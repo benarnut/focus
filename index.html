@@ -858,9 +858,10 @@
   .note-md ul, .note-md ol {
     padding-left: 18px; margin: 4px 0;
   }
-  .note-md li { margin: 0 !important; line-height: 1.6; }
-  .note-md li > p { margin: 0 !important; display: inline; }
-  .note-md li + li { margin-top: 0 !important; }
+  .note-md li { margin: 0 !important; padding: 1px 0; line-height: 1.5; }
+  .note-md li p, .note-md li > p { margin: 0 !important; padding: 0 !important; display: inline; }
+  .note-md ul, .note-md ol { margin: 4px 0 !important; }
+  .note-md ul li + li, .note-md ol li + li { margin-top: 1px !important; }
   .note-md strong { font-weight: 600; color: var(--text); }
   .note-md em { font-style: italic; }
   .note-md code {
@@ -2756,13 +2757,17 @@ renderTodos();
 function renderMarkdown(text) {
   if (typeof marked === 'undefined') return escHtml(text);
   try {
-    marked.setOptions({ breaks: false, gfm: true });
-    let raw = marked.parse(text);
-    // Remove <p> tags inside <li> to prevent extra spacing
-    raw = raw.replace(/<li><p>([\s\S]*?)<\/p><\/li>/g, '<li>$1</li>');
-    raw = raw.replace(/<li>\s*<p>/g, '<li>').replace(/<\/p>\s*<\/li>/g, '</li>');
+    // Use Renderer to prevent <p> wrapping inside list items
+    const renderer = new marked.Renderer();
+    renderer.listitem = function(text, task, checked) {
+      // Strip wrapping <p>...</p> from list item content
+      const cleaned = text.replace(/^<p>(.*?)<\/p>\n?$/s, '$1');
+      return '<li>' + cleaned + '</li>\n';
+    };
+    const options = { breaks: false, gfm: true, renderer: renderer };
+    let raw = marked.parse(text, options);
     // Strip script tags for safety
-    return raw.replace(/<script[\s\S]*?<\/script>/gi, '');
+    return raw.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
   } catch(e) {
     return escHtml(text);
   }
@@ -3090,10 +3095,19 @@ function renderWeekStats() {
     taskMinMap[s.label] = (taskMinMap[s.label] || 0) + actual;
   });
   const sorted = Object.entries(taskMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  // Project breakdown
+  // Project breakdown — infer project from label prefix if missing
+  const _projects = S.data.settings.projects || [];
+  function inferProject(s) {
+    if (s.project) return s.project;
+    for (const p of _projects) {
+      if (s.label && s.label.startsWith(p + ' · ')) return p;
+      if (s.label && s.label === p) return p;
+    }
+    return 'Other';
+  }
   const projectMap = {};
   S.data.sessions.filter(s => weekDates.has(s.date)).forEach(s => {
-    const proj = s.project || 'Other';
+    const proj = inferProject(s);
     if (!projectMap[proj]) projectMap[proj] = { count: 0, mins: 0 };
     projectMap[proj].count += (s.count || 1);
     projectMap[proj].mins += (s.totalMinutes || (s.count||1) * focusMinsW);
@@ -3101,7 +3115,7 @@ function renderWeekStats() {
   // Calc avg effort per project
   const projEffortMap = {};
   S.data.sessions.filter(s => weekDates.has(s.date)).forEach(s => {
-    const proj = s.project || 'Other';
+    const proj = inferProject(s);
     if (!projEffortMap[proj]) projEffortMap[proj] = [];
     if (s.avgEffort) projEffortMap[proj].push(s.avgEffort);
   });
@@ -3109,7 +3123,7 @@ function renderWeekStats() {
   const projHtml = Object.entries(projectMap).sort((a,b)=>b[1].count-a[1].count).map(([proj,d]) => {
     const efforts = projEffortMap[proj] || [];
     const avgE = efforts.length ? Math.round(efforts.reduce((a,b)=>a+b,0)/efforts.length*10)/10 : null;
-    const effortStr = avgE ? ` · ${EFFORT_EMOJI[Math.round(avgE)]} ${avgE}` : '';
+    const effortStr = avgE != null ? ` · ${EFFORT_EMOJI[Math.round(avgE)]} ${avgE}` : ' · 😐 —';
     return `
     <div class="session-row">
       <span class="session-task" style="font-weight:500;">${escHtml(proj)}</span>
@@ -3139,7 +3153,7 @@ function renderWeekStats() {
   taskEl.innerHTML = sorted.length ? sorted.map(([label,count]) => {
     const efforts = taskEffortMap[label] || [];
     const avgE = efforts.length ? Math.round(efforts.reduce((a,b)=>a+b,0)/efforts.length*10)/10 : null;
-    const effortStr = avgE ? ` · ${EFFORT_EMOJI[Math.round(avgE)]} ${avgE}` : '';
+    const effortStr = avgE != null ? ` · ${EFFORT_EMOJI[Math.round(avgE)]} ${avgE}` : ' · 😐 —';
     return `
     <div class="session-row">
       <span class="session-task">${escHtml(label)}</span>

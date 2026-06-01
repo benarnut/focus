@@ -2757,15 +2757,13 @@ renderTodos();
 function renderMarkdown(text) {
   if (typeof marked === 'undefined') return escHtml(text);
   try {
-    // Use Renderer to prevent <p> wrapping inside list items
-    const renderer = new marked.Renderer();
-    renderer.listitem = function(text, task, checked) {
-      // Strip wrapping <p>...</p> from list item content
-      const cleaned = text.replace(/^<p>(.*?)<\/p>\n?$/s, '$1');
-      return '<li>' + cleaned + '</li>\n';
+    // Walk tokens to force all lists to non-loose (no <p> wrapping)
+    const walkTokens = (token) => {
+      if (token.type === 'list') token.loose = false;
+      if (token.type === 'list_item') token.loose = false;
     };
-    const options = { breaks: false, gfm: true, renderer: renderer };
-    let raw = marked.parse(text, options);
+    marked.use({ walkTokens, breaks: false, gfm: true });
+    let raw = marked.parse(text);
     // Strip script tags for safety
     return raw.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
   } catch(e) {
@@ -2801,8 +2799,12 @@ function renderNotes() {
     div.className = 'note-card';
     div.id = 'note-card-' + n.id;
     const mdHtml = renderMarkdown(n.text);
-    // Count lines from rendered HTML for collapse detection
-    const isLong = n.text.split('\n').length > 3 || n.text.length > 200;
+    // Detect long content from both raw text and rendered HTML
+    const rawLines = n.text.split('\n').length;
+    const hasList = /<ul|<ol|<li/i.test(mdHtml);
+    const hasHeading = /<h[1-3]/i.test(mdHtml);
+    // Lists and headings expand content significantly when rendered
+    const isLong = rawLines > 3 || n.text.length > 150 || hasList || hasHeading;
     div.innerHTML = `
       ${n.typeEmoji ? `<div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:6px;letter-spacing:0.04em;">${n.typeEmoji} ${n.typeLabel || ''}</div>` : ''}
       <div class="note-body note-md collapsed" id="note-body-${n.id}">${mdHtml}</div>

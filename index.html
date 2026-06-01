@@ -74,7 +74,7 @@
     display: flex;
     align-items: center;
     justify-content: space-around;
-    z-index: 100;
+    z-index: 250; /* above break overlay z-index:200 */
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
   .nav-btn {
@@ -590,66 +590,52 @@
   }
   .toast.show { opacity: 1; }
 
-  /* BREAK MINI BAR */
+  /* BREAK OVERLAY — Full screen */
   .break-overlay {
     display: none;
-    position: fixed;
-    top: 0; left: 50%; transform: translateX(-50%);
-    width: 100%; max-width: 480px;
-    background: var(--bg2);
-    border-bottom: 1px solid var(--border2);
-    z-index: 300;
+    position: fixed; inset: 0;
+    background: var(--bg);
+    z-index: 200;
     flex-direction: column;
     align-items: center;
-    padding: 10px 20px 12px;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    justify-content: center;
+    text-align: center;
+    padding-bottom: var(--nav-h);
   }
   .break-overlay.show { display: flex; }
-  .break-mini-row {
-    display: flex; align-items: center;
-    justify-content: space-between;
-    width: 100%; gap: 12px;
-  }
   .break-title {
     font-family: var(--font-mono);
-    font-size: 10px;
+    font-size: 13px;
     color: var(--text3);
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    flex-shrink: 0;
+    margin-bottom: 12px;
   }
   .break-time {
     font-family: var(--font-mono);
-    font-size: 22px;
+    font-size: 60px;
     font-weight: 300;
     color: var(--text);
-    letter-spacing: -0.5px;
-    flex: 1;
-    text-align: center;
+    letter-spacing: -2px;
+    margin-bottom: 32px;
   }
   .btn-skip {
     background: none;
     border: 1px solid var(--border2);
-    border-radius: var(--radius-sm);
-    padding: 6px 14px;
+    border-radius: var(--radius);
+    padding: 11px 28px;
     font-family: var(--font-mono);
-    font-size: 12px;
+    font-size: 13px;
     color: var(--text2);
     cursor: pointer;
-    flex-shrink: 0;
     transition: all 0.2s;
-    white-space: nowrap;
   }
-  .btn-skip:hover { background: var(--bg3); }
+  .btn-skip:hover { background: var(--bg2); }
   .break-effort-row {
     display: flex; align-items: center; gap: 10px;
-    width: 100%; margin-top: 8px;
-    padding-top: 8px;
+    margin-top: 20px; padding-top: 20px;
     border-top: 1px solid var(--border);
-  }
-  /* Offset all screens when mini bar is active */
-  body.break-active .screen {
-    padding-top: calc(24px + 80px);
+    width: 280px;
   }
 
   @keyframes fadeIn {
@@ -1258,6 +1244,30 @@
     width: 10px; height: 10px; border-radius: 2px;
   }
 
+  /* ── PARTIAL EFFORT OVERLAY ── */
+  .partial-effort-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: var(--bg);
+    z-index: 300;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px 24px;
+  }
+  .partial-effort-overlay.show { display: flex; }
+  .partial-effort-title {
+    font-family: var(--font-mono);
+    font-size: 13px; color: var(--text3);
+    letter-spacing: 0.12em; text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .partial-effort-sub {
+    font-size: 13px; color: var(--text2);
+    margin-bottom: 32px; line-height: 1.5;
+  }
+
   /* Settings gear btn */
   .gear-btn {
     background: var(--bg2); border: 1px solid var(--border); border-radius: 20px;
@@ -1483,21 +1493,43 @@
   </button>
 </nav>
 
-<!-- BREAK MINI BAR -->
-<div class="break-overlay" id="break-overlay">
-  <div class="break-mini-row">
-    <div class="break-title" id="break-label">SHORT BREAK</div>
-    <div class="break-time" id="break-display">05:00</div>
-    <button class="btn-skip" id="skip-btn" onclick="skipBreak()">skip →</button>
+<!-- PARTIAL EFFORT OVERLAY -->
+<div class="partial-effort-overlay" id="partial-effort-overlay">
+  <div class="partial-effort-title">session saved</div>
+  <div class="partial-effort-sub" id="partial-effort-sub">how hard was it?</div>
+  <div class="effort-wrap" style="display:block;">
+    <span class="effort-emoji" id="partial-effort-emoji" style="font-size:40px;margin-bottom:12px;display:block;">😐</span>
+    <input type="range" class="effort-slider" id="partial-effort-slider"
+      min="1" max="5" value="3" step="1"
+      oninput="updatePartialEffortEmoji(this.value)" aria-label="Session effort"
+      style="width:240px;">
+    <div class="effort-scale" style="width:240px;margin:6px auto 24px;"><span>easy</span><span>hard</span></div>
   </div>
-  <!-- Effort row -->
-  <div class="break-effort-row" id="effort-wrap" style="display:none;">
-    <span class="effort-emoji" id="effort-emoji" style="font-size:20px;">😐</span>
-    <input type="range" class="effort-slider" id="effort-slider"
-      min="1" max="5" value="3" step="1" style="flex:1;"
-      oninput="updateEffortEmoji(this.value)" aria-label="Session effort">
-    <button class="btn-skip" id="done-effort-btn" onclick="confirmEffort()"
+  <div style="display:flex;gap:10px;">
+    <button class="btn-skip" onclick="skipPartialEffort()">skip →</button>
+    <button class="btn-skip" onclick="confirmPartialEffort()"
       style="background:var(--accent);color:var(--accent-text);border-color:var(--accent);">done ✓</button>
+  </div>
+</div>
+
+<!-- BREAK OVERLAY — Full Screen + Nav accessible -->
+<div class="break-overlay" id="break-overlay">
+  <div class="break-title" id="break-label">SHORT BREAK</div>
+  <div class="break-time" id="break-display">05:00</div>
+
+  <div class="effort-wrap" id="effort-wrap" style="display:none;width:280px;text-align:center;">
+    <div class="effort-label">how hard was that session?</div>
+    <span class="effort-emoji" id="effort-emoji" style="font-size:36px;margin:12px 0;display:block;">😐</span>
+    <input type="range" class="effort-slider" id="effort-slider"
+      min="1" max="5" value="3" step="1" style="width:100%;"
+      oninput="updateEffortEmoji(this.value)" aria-label="Session effort">
+    <div class="effort-scale" style="margin-bottom:16px;"><span>easy</span><span>hard</span></div>
+  </div>
+
+  <div style="display:flex;gap:10px;align-items:center;">
+    <button class="btn-skip" id="skip-btn" onclick="skipBreak()">skip break →</button>
+    <button class="btn-skip" id="done-effort-btn" onclick="confirmEffort()"
+      style="display:none;background:var(--accent);color:var(--accent-text);border-color:var(--accent);">done ✓</button>
   </div>
 </div>
 
@@ -1522,7 +1554,7 @@
         <span class="help-icon">⏹</span>
         <div class="help-text">
           <strong>หยุดกลางคัน</strong>
-          <span>กด <b>done</b> เพื่อหยุดและบันทึกเวลาจริงที่ทำไป — ไม่สูญเสีย record</span>
+          <span>กด <b>done</b> เพื่อหยุดและบันทึกเวลาจริงที่ทำไป — จากนั้นจะมี slider ให้ rate effort ก่อน (กด skip ได้ถ้าไม่อยาก rate)</span>
         </div>
       </div>
       <div class="help-item">
@@ -1655,19 +1687,19 @@
     </div>
 
     <div class="help-section">
-      <div class="help-section-title">☰ Break Mini Bar</div>
+      <div class="help-section-title">☕ Break Overlay</div>
       <div class="help-item">
-        <span class="help-icon">☰</span>
+        <span class="help-icon">☕</span>
         <div class="help-text">
-          <strong>ใช้งานระหว่าง break</strong>
-          <span>break overlay กลายเป็น bar เล็กด้านบน — สลับไป Notes หรือ Todo ได้เลยโดยไม่ต้อง skip break</span>
+          <strong>ระหว่าง break</strong>
+          <span>break overlay แสดงเต็มจอ — สามารถใช้ <b>nav bar ด้านล่าง</b> สลับไป Notes หรือ Todo ได้เลยโดยไม่ต้อง skip</span>
         </div>
       </div>
       <div class="help-item">
         <span class="help-icon">😌</span>
         <div class="help-text">
           <strong>Effort Rating</strong>
-          <span>เลื่อน slider ใน bar → กด <b>done ✓</b> บันทึก effort (break ยังนับต่อ) · กด <b>skip →</b> เพื่อข้าม break ทั้งหมด</span>
+          <span>เลื่อน slider → กด <b>done ✓</b> บันทึก effort (break นับต่อ) · กด <b>skip break →</b> เพื่อข้าม break ทั้งหมด</span>
         </div>
       </div>
     </div>
@@ -1949,6 +1981,7 @@ function onTimerEnd() {
     const today = new Date().toDateString();
     const project = S.data.settings.lastProject || null;
     const sessionStartHour = new Date().getHours();
+    const completedMins = getMins('focus');
     const existing = S.data.sessions.find(s => s.label === label && s.date === today);
     if (existing) {
       existing.count = (existing.count || 1) + 1;
@@ -1956,8 +1989,17 @@ function onTimerEnd() {
       if (project) existing.project = project;
       if (!existing.startHours) existing.startHours = [];
       existing.startHours.push(sessionStartHour);
+      // Accumulate actual minutes for complete session
+      existing.totalMinutes = (existing.totalMinutes || 0) + completedMins;
+      if (!existing.detail) existing.detail = [];
+      existing.detail.push({ planned: completedMins, actual: completedMins, complete: true });
     } else {
-      S.data.sessions.push({ id: Date.now(), label, project, date: today, count: 1, lastTime: fmtTime(), startHours: [sessionStartHour] });
+      S.data.sessions.push({
+        id: Date.now(), label, project, date: today, count: 1,
+        lastTime: fmtTime(), startHours: [sessionStartHour],
+        totalMinutes: completedMins,
+        detail: [{ planned: completedMins, actual: completedMins, complete: true }]
+      });
     }
     // Increment daily session count
     if (S.data.settings.sessionCountDate !== today) {
@@ -2025,7 +2067,7 @@ function startBreak(type) {
   const overlay = document.getElementById('break-overlay');
   overlay.classList.add('show');
   document.getElementById('break-label').textContent = type === 'short' ? 'SHORT BREAK' : 'LONG BREAK';
-  document.body.classList.add('break-active');
+
   // Show effort rating
   document.getElementById('effort-wrap').style.display = 'block';
   document.getElementById('effort-slider').value = 3;
@@ -2047,6 +2089,30 @@ const EFFORT_EMOJI = { 1:'😌', 2:'🙂', 3:'😐', 4:'😤', 5:'😓' };
 function updateEffortEmoji(val) {
   document.getElementById('effort-emoji').textContent = EFFORT_EMOJI[val] || '😐';
   S.timer._pendingEffort = parseInt(val);
+}
+
+// ── PARTIAL EFFORT ───────────────────────────────────
+function showPartialEffort(actualMins) {
+  const sub = document.getElementById('partial-effort-sub');
+  if (sub) sub.textContent = `${actualMins} min saved — how hard was it?`;
+  document.getElementById('partial-effort-slider').value = 3;
+  updatePartialEffortEmoji(3);
+  document.getElementById('partial-effort-overlay').classList.add('show');
+}
+
+function updatePartialEffortEmoji(val) {
+  document.getElementById('partial-effort-emoji').textContent = EFFORT_EMOJI[val] || '😐';
+}
+
+function confirmPartialEffort() {
+  const val = parseInt(document.getElementById('partial-effort-slider').value) || 3;
+  saveEffortRating(val);
+  document.getElementById('partial-effort-overlay').classList.remove('show');
+  toast('Saved ✓');
+}
+
+function skipPartialEffort() {
+  document.getElementById('partial-effort-overlay').classList.remove('show');
 }
 
 function confirmEffort() {
@@ -2085,7 +2151,7 @@ function skipBreak() {
   document.getElementById('break-overlay').classList.remove('show');
   document.getElementById('effort-wrap').style.display = 'none';
   document.getElementById('done-effort-btn').style.display = 'none';
-  document.body.classList.remove('break-active');
+
   setMode('focus');
   updatePomoCounter(wasLongBreak);
 }
@@ -2120,12 +2186,15 @@ function stopAndSave() {
   const label = document.getElementById('working-on').value.trim() || 'Untitled';
   const today = new Date().toDateString();
 
-  // Log as partial session
+  // Log as partial session — accumulate totalMinutes correctly
+  const partialStartHour = new Date().getHours();
   const existing = S.data.sessions.find(s => s.label === label && s.date === today);
   if (existing) {
     existing.count = (existing.count || 1) + 1;
     existing.lastTime = fmtTime();
-    existing.totalMinutes = (existing.totalMinutes || 0) + actualMins;
+    existing.totalMinutes = (existing.totalMinutes || 0) + actualMins; // accumulate ✅
+    if (!existing.startHours) existing.startHours = [];
+    existing.startHours.push(partialStartHour);
     if (!existing.detail) existing.detail = [];
     existing.detail.push({ planned: Math.round(plannedSecs/60), actual: actualMins, complete: false });
   } else {
@@ -2145,12 +2214,14 @@ function stopAndSave() {
   save();
   updatePomoCounter();
 
-  toast(`Saved ${actualMins} min · ${label}`);
   S.timer._startedAt = null;
+  S.timer._wallStart = null;
   document.getElementById('done-btn').style.display = 'none';
   document.getElementById('start-btn').textContent = 'start';
   S.timer.remaining = S.timer.total;
   updateDisplay();
+  // Show effort rating prompt (no break timer)
+  showPartialEffort(actualMins);
 }
 
 // ── SOUND (Web Audio) ──────────────────────────────────
@@ -2298,7 +2369,7 @@ function genCafe(ctx, vol) {
 function exportData() {
   const date = new Date().toISOString().split('T')[0];
   const backup = {
-    version: 'focus-v5',
+    version: 'focus-v9',
     exported: new Date().toISOString(),
     data: S.data
   };

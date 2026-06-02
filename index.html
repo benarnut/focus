@@ -1379,9 +1379,10 @@
     <div class="sound-category-label">tones</div>
     <div class="sound-category-sub">ลองฟังดูว่าชอบไหม</div>
     <div class="sound-options">
-      <button class="sound-pill" onclick="selectSound('alpha')" id="snd-alpha">alpha 🎧</button>
-      <button class="sound-pill" onclick="selectSound('gamma40')" id="snd-gamma40">40hz 🎧</button>
-      <button class="sound-pill" onclick="selectSound('hz528')" id="snd-hz528">528hz</button>
+      <button class="sound-pill" onclick="selectTone('alpha')" id="tone-alpha">alpha 🎧</button>
+      <button class="sound-pill" onclick="selectTone('gamma40')" id="tone-gamma40">40hz 🎧</button>
+      <button class="sound-pill" onclick="selectTone('hz528')" id="tone-hz528">528hz</button>
+      <button class="sound-pill active" onclick="selectTone(null)" id="tone-off">off</button>
     </div>
     <div class="headphone-tip" id="headphone-tip">🎧 เสียงนี้ได้ผลดีที่สุดกับหูฟัง</div>
     <div class="volume-row">

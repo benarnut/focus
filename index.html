@@ -244,11 +244,32 @@
     color: var(--text3);
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
+  }
+  .sound-category-label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--text3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    margin-top: 10px;
+  }
+  .sound-category-sub {
+    font-size: 10px;
+    color: var(--text3);
+    margin-bottom: 8px;
+    font-style: italic;
   }
   .sound-options {
-    display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;
+    display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 4px;
   }
+  .headphone-tip {
+    font-size: 11px; color: var(--text3);
+    margin-top: 6px; margin-bottom: 8px;
+    display: none;
+  }
+  .headphone-tip.show { display: block; }
   .sound-pill {
     background: var(--bg3);
     border: 1px solid var(--border);
@@ -593,14 +614,15 @@
   /* BREAK OVERLAY — Full screen */
   .break-overlay {
     display: none;
-    position: fixed; inset: 0;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    bottom: var(--nav-h); /* stop above nav bar — nav handles its own touch */
     background: var(--bg);
     z-index: 200;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     text-align: center;
-    padding-bottom: var(--nav-h);
   }
   .break-overlay.show { display: flex; }
   .break-title {
@@ -1351,8 +1373,17 @@
       <button class="sound-pill" onclick="selectSound('forest')" id="snd-forest">forest</button>
       <button class="sound-pill" onclick="selectSound('cafe')" id="snd-cafe">café</button>
       <button class="sound-pill" onclick="selectSound('white')" id="snd-white">white noise</button>
+      <button class="sound-pill" onclick="selectSound('brown')" id="snd-brown">brown noise</button>
       <button class="sound-pill active" onclick="selectSound(null)" id="snd-off">off</button>
     </div>
+    <div class="sound-category-label">tones</div>
+    <div class="sound-category-sub">ลองฟังดูว่าชอบไหม</div>
+    <div class="sound-options">
+      <button class="sound-pill" onclick="selectSound('alpha')" id="snd-alpha">alpha 🎧</button>
+      <button class="sound-pill" onclick="selectSound('gamma40')" id="snd-gamma40">40hz 🎧</button>
+      <button class="sound-pill" onclick="selectSound('hz528')" id="snd-hz528">528hz</button>
+    </div>
+    <div class="headphone-tip" id="headphone-tip">🎧 เสียงนี้ได้ผลดีที่สุดกับหูฟัง</div>
     <div class="volume-row">
       <span class="vol-icon">♪</span>
       <input type="range" id="vol-slider" min="0" max="100" value="50" step="1" oninput="setVolume(this.value)" aria-label="Volume">
@@ -1601,10 +1632,17 @@
     <div class="help-section">
       <div class="help-section-title">🎵 Ambient Sounds</div>
       <div class="help-item">
-        <span class="help-icon">🔊</span>
+        <span class="help-icon">🌧</span>
         <div class="help-text">
-          <strong>เล่นเสียง</strong>
-          <span>เลือก rain / forest / café / white noise · ปรับ volume ด้วย slider</span>
+          <strong>Ambient</strong>
+          <span>rain · forest · café · white noise · brown noise — เปิดลำโพงได้เลย</span>
+        </div>
+      </div>
+      <div class="help-item">
+        <span class="help-icon">🎧</span>
+        <div class="help-text">
+          <strong>Tones — เปิดพร้อม Ambient ได้เลย</strong>
+          <span><b>alpha 🎧</b> binaural 10Hz · <b>40hz 🎧</b> gamma · <b>528hz</b> pure tone · Ambient และ Tone มี volume แยกกัน — เลือกได้อิสระ เปิดพร้อมกันหรืออันเดียวก็ได้ · เสียงที่มี 🎧 ต้องใช้หูฟัง</span>
         </div>
       </div>
       <div class="help-item">
@@ -1825,6 +1863,8 @@ if (!S.data.settings.workMin) { S.data.settings.workMin = 25; S.data.settings.sh
 if (!S.data.settings.lastTask) S.data.settings.lastTask = '';
 if (!S.data.settings.projects) S.data.settings.projects = ['Work', 'Personal'];
 if (S.data.settings.lastProject === undefined) S.data.settings.lastProject = null;
+if (S.data.settings.toneSound === undefined) S.data.settings.toneSound = null;
+if (!S.data.settings.toneVolume) S.data.settings.toneVolume = 30;
 // Restore last task and timer durations
 S.timer.total = S.data.settings.workMin * 60;
 S.timer.remaining = S.data.settings.workMin * 60;
@@ -1873,6 +1913,21 @@ const savedSound = S.data.settings.sound;
 const savedVol = S.data.settings.volume || 50;
 document.getElementById('vol-slider').value = savedVol;
 document.getElementById('vol-val').textContent = savedVol;
+// Restore tone UI
+const savedTone = S.data.settings.toneSound;
+const savedToneVol = S.data.settings.toneVolume || 30;
+const tVolSlider = document.getElementById('tone-vol-slider');
+const tVolVal = document.getElementById('tone-vol-val');
+if (tVolSlider) tVolSlider.value = savedToneVol;
+if (tVolVal) tVolVal.textContent = savedToneVol;
+if (savedTone) {
+  document.querySelectorAll('#tone-alpha,#tone-gamma40,#tone-hz528,#tone-off')
+    .forEach(p => p && p.classList.remove('active'));
+  const tEl = document.getElementById('tone-' + savedTone);
+  if (tEl) tEl.classList.add('active');
+  const tipEl = document.getElementById('headphone-tip');
+  if (tipEl && HEADPHONE_SOUNDS.has(savedTone)) tipEl.classList.add('show');
+}
 if (savedSound) {
   document.querySelectorAll('.sound-pill').forEach(p => p.classList.remove('active'));
   const el = document.getElementById('snd-' + savedSound);
@@ -2075,12 +2130,21 @@ function startBreak(type) {
   document.getElementById('skip-btn').textContent = 'skip →';
   document.getElementById('done-effort-btn').style.display = 'inline-block';
   S.timer._pendingEffort = null;
+  S.timer._breakType = type; // store for wall clock + dots reset
+  S.timer._breakStart = Date.now();
+  S.timer._breakTotal = mins * 60;
   let rem = mins * 60;
   updateBreakDisplay(rem);
   S.timer._breakInterval = setInterval(() => {
-    rem--;
+    // Wall clock for break timer
+    const elapsed = Math.floor((Date.now() - S.timer._breakStart) / 1000);
+    rem = Math.max(0, S.timer._breakTotal - elapsed);
     updateBreakDisplay(rem);
-    if (rem <= 0) { clearInterval(S.timer._breakInterval); skipBreak(); }
+    if (rem <= 0) {
+      clearInterval(S.timer._breakInterval);
+      const wasLong = S.timer._breakType === 'long';
+      skipBreakInternal(wasLong);
+    }
   }, 1000);
 }
 
@@ -2145,15 +2209,20 @@ function updateBreakDisplay(rem) {
   document.getElementById('break-display').textContent = m+':'+s;
 }
 
-function skipBreak() {
+function skipBreakInternal(wasLong) {
   clearInterval(S.timer._breakInterval);
-  const wasLongBreak = S.timer.mode === 'long';
+  S.timer._breakStart = null;
+  S.timer._breakTotal = null;
   document.getElementById('break-overlay').classList.remove('show');
   document.getElementById('effort-wrap').style.display = 'none';
   document.getElementById('done-effort-btn').style.display = 'none';
-
   setMode('focus');
-  updatePomoCounter(wasLongBreak);
+  updatePomoCounter(wasLong);
+}
+
+function skipBreak() {
+  const wasLong = S.timer._breakType === 'long';
+  skipBreakInternal(wasLong);
 }
 
 function resetTimer() {
@@ -2229,7 +2298,11 @@ const SOUNDS = {
   rain: () => genRain(),
   white: () => genWhiteNoise(),
   forest: () => genForest(),
-  cafe: () => genCafe()
+  cafe: () => genCafe(),
+  brown: () => genBrownNoise(),
+  alpha: () => genAlphaWave(),
+  gamma40: () => genGamma40(),
+  hz528: () => genHz528()
 };
 
 function getAudioCtx() {
@@ -2242,10 +2315,25 @@ function stopSound() {
   S.sound.nodes = [];
 }
 
+// Headphone-required tones
+const HEADPHONE_SOUNDS = new Set(['alpha', 'gamma40']);
+
+// Separate tone nodes from ambient nodes
+if (!S.sound.toneNodes) S.sound.toneNodes = [];
+
+function stopTone() {
+  S.sound.toneNodes.forEach(n => { try { n.stop(); } catch(e){} });
+  S.sound.toneNodes = [];
+}
+
 function selectSound(type) {
   stopSound();
-  document.querySelectorAll('.sound-pill').forEach(p => p.classList.remove('active'));
-  if (!type) { document.getElementById('snd-off').classList.add('active'); S.sound.current = null; S.data.settings.sound = null; save(); return; }
+  document.querySelectorAll('#snd-rain,#snd-forest,#snd-cafe,#snd-white,#snd-brown,#snd-off')
+    .forEach(p => p && p.classList.remove('active'));
+  if (!type) {
+    document.getElementById('snd-off').classList.add('active');
+    S.sound.current = null; S.data.settings.sound = null; save(); return;
+  }
   document.getElementById('snd-' + type).classList.add('active');
   S.sound.current = type;
   S.data.settings.sound = type;
@@ -2253,6 +2341,41 @@ function selectSound(type) {
   const ctx = getAudioCtx();
   const vol = parseInt(document.getElementById('vol-slider').value) / 100;
   SOUNDS[type](ctx, vol);
+}
+
+function selectTone(type) {
+  stopTone();
+  document.querySelectorAll('#tone-alpha,#tone-gamma40,#tone-hz528,#tone-off')
+    .forEach(p => p && p.classList.remove('active'));
+  // Toggle headphone tip
+  const tip = document.getElementById('headphone-tip');
+  if (tip) tip.classList.toggle('show', !!(type && HEADPHONE_SOUNDS.has(type)));
+
+  if (!type) {
+    document.getElementById('tone-off').classList.add('active');
+    S.data.settings.toneSound = null; save(); return;
+  }
+  document.getElementById('tone-' + type).classList.add('active');
+  S.data.settings.toneSound = type;
+  save();
+  const ctx = getAudioCtx();
+  const vol = parseInt(document.getElementById('tone-vol-slider').value) / 100;
+  // Play tone — redirect nodes to toneNodes
+  const prevNodes = S.sound.nodes;
+  S.sound.nodes = S.sound.toneNodes;
+  SOUNDS[type](ctx, vol);
+  S.sound.toneNodes = S.sound.nodes;
+  S.sound.nodes = prevNodes;
+}
+
+function setToneVolume(val) {
+  document.getElementById('tone-vol-val').textContent = val;
+  S.data.settings.toneVolume = parseInt(val);
+  save();
+  // Restart tone with new volume if playing
+  if (S.data.settings.toneSound) {
+    selectTone(S.data.settings.toneSound);
+  }
 }
 
 function setVolume(v) {
@@ -2627,6 +2750,64 @@ function applySettings() {
   closeSettings();
   setMode('focus');
   toast('Duration updated ✓');
+}
+
+function genBrownNoise(ctx, vol) {
+  if (!ctx) { ctx = getAudioCtx(); vol = parseInt(document.getElementById('vol-slider').value)/100; }
+  const buf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  let lastOut = 0;
+  for (let i = 0; i < d.length; i++) {
+    const white = Math.random() * 2 - 1;
+    d[i] = (lastOut + (0.02 * white)) / 1.02;
+    lastOut = d[i];
+    d[i] *= 3.5;
+  }
+  const src = ctx.createBufferSource();
+  src.buffer = buf; src.loop = true;
+  const g = masterGain(ctx, vol * 0.7);
+  src.connect(g); src.start();
+  S.sound.nodes.push(src);
+}
+
+function genAlphaWave(ctx, vol) {
+  if (!ctx) { ctx = getAudioCtx(); vol = parseInt(document.getElementById('vol-slider').value)/100; }
+  // Binaural: left 200Hz, right 210Hz → 10Hz alpha beat
+  const merger = ctx.createChannelMerger(2);
+  const g = ctx.createGain();
+  g.gain.value = vol * 0.3;
+  merger.connect(g); g.connect(ctx.destination);
+
+  const oscL = ctx.createOscillator();
+  const oscR = ctx.createOscillator();
+  const panL = ctx.createStereoPanner();
+  const panR = ctx.createStereoPanner();
+  oscL.frequency.value = 200; panL.pan.value = -1;
+  oscR.frequency.value = 210; panR.pan.value = 1;
+  oscL.connect(panL); panL.connect(g);
+  oscR.connect(panR); panR.connect(g);
+  oscL.start(); oscR.start();
+  S.sound.nodes.push(oscL, oscR);
+}
+
+function genGamma40(ctx, vol) {
+  if (!ctx) { ctx = getAudioCtx(); vol = parseInt(document.getElementById('vol-slider').value)/100; }
+  const osc = ctx.createOscillator();
+  osc.type = 'sine';
+  osc.frequency.value = 40;
+  const g = masterGain(ctx, vol * 0.2); // lower gain for pure tone
+  osc.connect(g); osc.start();
+  S.sound.nodes.push(osc);
+}
+
+function genHz528(ctx, vol) {
+  if (!ctx) { ctx = getAudioCtx(); vol = parseInt(document.getElementById('vol-slider').value)/100; }
+  const osc = ctx.createOscillator();
+  osc.type = 'sine';
+  osc.frequency.value = 528;
+  const g = masterGain(ctx, vol * 0.2);
+  osc.connect(g); osc.start();
+  S.sound.nodes.push(osc);
 }
 
 // ── TODOS ──────────────────────────────────────────────
@@ -3309,14 +3490,28 @@ document.addEventListener('keydown', e => {
 
 // ── PAGE VISIBILITY — sync timer when tab becomes active ──
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && S.timer.running && S.timer._wallStart) {
-    const elapsed = Math.floor((Date.now() - S.timer._wallStart) / 1000);
-    S.timer.remaining = Math.max(0, S.timer.total - elapsed);
-    updateDisplay();
-    if (S.timer.remaining <= 0) {
-      clearInterval(S.timer.interval);
-      S.timer.running = false;
-      onTimerEnd();
+  if (document.visibilityState === 'visible') {
+    // Sync focus timer
+    if (S.timer.running && S.timer._wallStart) {
+      const elapsed = Math.floor((Date.now() - S.timer._wallStart) / 1000);
+      S.timer.remaining = Math.max(0, S.timer.total - elapsed);
+      updateDisplay();
+      if (S.timer.remaining <= 0) {
+        clearInterval(S.timer.interval);
+        S.timer.running = false;
+        onTimerEnd();
+      }
+    }
+    // Sync break timer
+    if (S.timer._breakStart && S.timer._breakTotal) {
+      const elapsed = Math.floor((Date.now() - S.timer._breakStart) / 1000);
+      const rem = Math.max(0, S.timer._breakTotal - elapsed);
+      updateBreakDisplay(rem);
+      if (rem <= 0) {
+        clearInterval(S.timer._breakInterval);
+        const wasLong = S.timer._breakType === 'long';
+        skipBreakInternal(wasLong);
+      }
     }
   }
 });

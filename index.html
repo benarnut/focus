@@ -1376,14 +1376,6 @@
       <button class="sound-pill" onclick="selectSound('brown')" id="snd-brown">brown noise</button>
       <button class="sound-pill active" onclick="selectSound(null)" id="snd-off">off</button>
     </div>
-    <div class="sound-category-label">tones</div>
-    <div class="sound-category-sub">ลองฟังดูว่าชอบไหม</div>
-    <div class="sound-options">
-      <button class="sound-pill" onclick="selectTone('alpha')" id="tone-alpha">alpha 🎧</button>
-      <button class="sound-pill" onclick="selectTone('gamma40')" id="tone-gamma40">40hz 🎧</button>
-      <button class="sound-pill" onclick="selectTone('hz528')" id="tone-hz528">528hz</button>
-      <button class="sound-pill active" onclick="selectTone(null)" id="tone-off">off</button>
-    </div>
     <div class="headphone-tip" id="headphone-tip">🎧 เสียงนี้ได้ผลดีที่สุดกับหูฟัง</div>
     <div class="volume-row">
       <span class="vol-icon">♪</span>
@@ -1650,16 +1642,10 @@
         <span class="help-icon">🌧</span>
         <div class="help-text">
           <strong>Ambient</strong>
-          <span>rain · forest · café · white noise · brown noise — เปิดลำโพงได้เลย</span>
+          <span>rain · forest · café — เสียงบรรยากาศจริง · white noise · brown noise — generated noise สำหรับ focus</span>
         </div>
       </div>
-      <div class="help-item">
-        <span class="help-icon">🎧</span>
-        <div class="help-text">
-          <strong>Tones — เปิดพร้อม Ambient ได้เลย</strong>
-          <span><b>alpha 🎧</b> binaural 10Hz · <b>40hz 🎧</b> gamma · <b>528hz</b> pure tone · Ambient และ Tone มี volume แยกกัน — เลือกได้อิสระ เปิดพร้อมกันหรืออันเดียวก็ได้ · เสียงที่มี 🎧 ต้องใช้หูฟัง</span>
-        </div>
-      </div>
+
       <div class="help-item">
         <span class="help-icon">⚠️</span>
         <div class="help-text">
@@ -1949,14 +1935,7 @@ const tVolSlider = document.getElementById('tone-vol-slider');
 const tVolVal = document.getElementById('tone-vol-val');
 if (tVolSlider) tVolSlider.value = savedToneVol;
 if (tVolVal) tVolVal.textContent = savedToneVol;
-if (savedTone) {
-  document.querySelectorAll('#tone-alpha,#tone-gamma40,#tone-hz528,#tone-off')
-    .forEach(p => p && p.classList.remove('active'));
-  const tEl = document.getElementById('tone-' + savedTone);
-  if (tEl) tEl.classList.add('active');
-  const tipEl = document.getElementById('headphone-tip');
-  if (tipEl && HEADPHONE_SOUNDS.has(savedTone)) tipEl.classList.add('show');
-}
+
 if (savedSound) {
   document.querySelectorAll('.sound-pill').forEach(p => p.classList.remove('active'));
   const el = document.getElementById('snd-' + savedSound);
@@ -2344,8 +2323,14 @@ function getAudioCtx() {
 }
 
 function stopSound() {
+  // Stop Web Audio nodes
   S.sound.nodes.forEach(n => { try { n.stop(); } catch(e){} });
   S.sound.nodes = [];
+  // Stop audio element (rain/forest/cafe)
+  if (S.sound.audioEl) {
+    S.sound.audioEl.pause();
+    S.sound.audioEl = null;
+  }
 }
 
 // Headphone-required tones
@@ -2354,10 +2339,7 @@ const HEADPHONE_SOUNDS = new Set(['alpha', 'gamma40']);
 // Separate tone nodes from ambient nodes
 if (!S.sound.toneNodes) S.sound.toneNodes = [];
 
-function stopTone() {
-  S.sound.toneNodes.forEach(n => { try { n.stop(); } catch(e){} });
-  S.sound.toneNodes = [];
-}
+
 
 function selectSound(type) {
   stopSound();
@@ -2376,42 +2358,16 @@ function selectSound(type) {
   SOUNDS[type](ctx, vol);
 }
 
-function selectTone(type) {
-  stopTone();
-  document.querySelectorAll('#tone-alpha,#tone-gamma40,#tone-hz528,#tone-off')
-    .forEach(p => p && p.classList.remove('active'));
-  // Toggle headphone tip
-  const tip = document.getElementById('headphone-tip');
-  if (tip) tip.classList.toggle('show', !!(type && HEADPHONE_SOUNDS.has(type)));
 
-  if (!type) {
-    document.getElementById('tone-off').classList.add('active');
-    S.data.settings.toneSound = null; save(); return;
-  }
-  document.getElementById('tone-' + type).classList.add('active');
-  S.data.settings.toneSound = type;
-  save();
-  const ctx = getAudioCtx();
-  const vol = parseInt(document.getElementById('tone-vol-slider').value) / 100;
-  // Call TONE_SOUNDS directly — nodes go to toneNodes
-  if (TONE_SOUNDS[type]) TONE_SOUNDS[type](ctx, vol);
-}
-
-function setToneVolume(val) {
-  document.getElementById('tone-vol-val').textContent = val;
-  S.data.settings.toneVolume = parseInt(val);
-  save();
-  // Restart tone with new volume if playing
-  if (S.data.settings.toneSound) {
-    selectTone(S.data.settings.toneSound);
-  }
-}
 
 function setVolume(v) {
   document.getElementById('vol-val').textContent = v;
   S.data.settings.volume = parseInt(v);
   save();
-  if (S.sound.current) selectSound(S.sound.current);
+  // Update audio element volume live
+  if (S.sound.audioEl) S.sound.audioEl.volume = Math.min(1, (v/100) * 1.2);
+  // Update Web Audio nodes live
+  S.sound.nodes.forEach(n => { if (n.gain) n.gain.value = v/100 * 0.4; });
 }
 
 function masterGain(ctx, vol) {
@@ -2421,22 +2377,32 @@ function masterGain(ctx, vol) {
   return g;
 }
 
+function playAudioFile(file, vol) {
+  // Stop previous audio element if any
+  if (S.sound.audioEl) {
+    S.sound.audioEl.pause();
+    S.sound.audioEl = null;
+  }
+  const audio = new Audio(file);
+  audio.loop = true;
+  audio.volume = Math.min(1, vol);
+  audio.play().catch(() => {
+    // Autoplay blocked — user needs to interact first
+    console.warn('Audio play blocked, retrying on next interaction');
+  });
+  S.sound.audioEl = audio;
+}
+
 function genRain(ctx, vol) {
-  if (!ctx) { ctx = getAudioCtx(); vol = parseInt(document.getElementById('vol-slider').value)/100; }
-  const buf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
-  const data = buf.getChannelData(0);
-  for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * 0.8;
-  const src = ctx.createBufferSource();
-  src.buffer = buf;
-  src.loop = true;
-  const filt = ctx.createBiquadFilter();
-  filt.type = 'bandpass';
-  filt.frequency.value = 1200;
-  filt.Q.value = 0.5;
-  const g = masterGain(ctx, vol);
-  src.connect(filt); filt.connect(g);
-  src.start();
-  S.sound.nodes.push(src);
+  playAudioFile('rain.mp3', vol * 1.2);
+}
+
+function genForest(ctx, vol) {
+  playAudioFile('forest.mp3', vol);
+}
+
+function genCafe(ctx, vol) {
+  playAudioFile('cafe.mp3', vol);
 }
 
 function genWhiteNoise(ctx, vol) {

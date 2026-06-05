@@ -1711,7 +1711,21 @@
         <span class="help-icon">📅</span>
         <div class="help-text">
           <strong>Today / This Week</strong>
-          <span>เลือก tab ด้านบน · week view แสดง bar chart 7 วัน + breakdown by project</span>
+          <span>เลือก tab ด้านบน · week view แสดง bar chart 7 วัน + breakdown by project + top 5 tasks</span>
+        </div>
+      </div>
+      <div class="help-item">
+        <span class="help-icon">👆</span>
+        <div class="help-text">
+          <strong>กด bar แต่ละวัน</strong>
+          <span>ดู sessions และ top tasks ของวันนั้นโดยเฉพาะ · กดซ้ำเพื่อปิด</span>
+        </div>
+      </div>
+      <div class="help-item">
+        <span class="help-icon">‹ ›</span>
+        <div class="help-text">
+          <strong>ข้ามสัปดาห์</strong>
+          <span>กด ‹ เพื่อดูสัปดาห์ก่อน · กด › กลับมาสัปดาห์นี้</span>
         </div>
       </div>
     </div>
@@ -2310,14 +2324,18 @@ function stopAndSave() {
 
 // ── SOUND (Web Audio) ──────────────────────────────────
 const SOUNDS = {
-  rain: () => genRain(),
-  white: () => genWhiteNoise(),
-  forest: () => genForest(),
-  cafe: () => genCafe(),
-  brown: () => genBrownNoise(),
-  alpha: () => genAlphaWave(),
-  gamma40: () => genGamma40(),
-  hz528: () => genHz528()
+  rain: (ctx, vol) => genRain(ctx, vol),
+  white: (ctx, vol) => genWhiteNoise(ctx, vol),
+  forest: (ctx, vol) => genForest(ctx, vol),
+  cafe: (ctx, vol) => genCafe(ctx, vol),
+  brown: (ctx, vol) => genBrownNoise(ctx, vol)
+};
+
+// Separate tone sounds — nodes go to toneNodes, not ambient nodes
+const TONE_SOUNDS = {
+  alpha: (ctx, vol) => genAlphaWave(ctx, vol),
+  gamma40: (ctx, vol) => genGamma40(ctx, vol),
+  hz528: (ctx, vol) => genHz528(ctx, vol)
 };
 
 function getAudioCtx() {
@@ -2375,12 +2393,8 @@ function selectTone(type) {
   save();
   const ctx = getAudioCtx();
   const vol = parseInt(document.getElementById('tone-vol-slider').value) / 100;
-  // Play tone directly — pass ctx and vol
-  const prevNodes = S.sound.nodes;
-  S.sound.nodes = S.sound.toneNodes;
-  SOUNDS[type](ctx, vol);
-  S.sound.toneNodes = S.sound.nodes;
-  S.sound.nodes = prevNodes;
+  // Call TONE_SOUNDS directly — nodes go to toneNodes
+  if (TONE_SOUNDS[type]) TONE_SOUNDS[type](ctx, vol);
 }
 
 function setToneVolume(val) {
@@ -2787,7 +2801,6 @@ function genBrownNoise(ctx, vol) {
 }
 
 function genAlphaWave(ctx, vol) {
-  if (!ctx) { ctx = getAudioCtx(); vol = parseInt(document.getElementById('tone-vol-slider').value)/100; }
   // Binaural: left 200Hz, right 210Hz → 10Hz alpha beat
   const merger = ctx.createChannelMerger(2);
   const g = ctx.createGain();
@@ -2803,29 +2816,27 @@ function genAlphaWave(ctx, vol) {
   oscL.connect(panL); panL.connect(g);
   oscR.connect(panR); panR.connect(g);
   oscL.start(); oscR.start();
-  S.sound.nodes.push(oscL, oscR);
+  S.sound.toneNodes.push(oscL, oscR);
 }
 
 function genGamma40(ctx, vol) {
-  if (!ctx) { ctx = getAudioCtx(); vol = parseInt(document.getElementById('tone-vol-slider').value)/100; }
   const osc = ctx.createOscillator();
   osc.type = 'sine';
   osc.frequency.value = 40;
   const g = ctx.createGain();
   g.gain.value = vol * 0.2;
   osc.connect(g); g.connect(ctx.destination); osc.start();
-  S.sound.nodes.push(osc);
+  S.sound.toneNodes.push(osc);
 }
 
 function genHz528(ctx, vol) {
-  if (!ctx) { ctx = getAudioCtx(); vol = parseInt(document.getElementById('tone-vol-slider').value)/100; }
   const osc = ctx.createOscillator();
   osc.type = 'sine';
   osc.frequency.value = 528;
   const g = ctx.createGain();
   g.gain.value = vol * 0.2;
   osc.connect(g); g.connect(ctx.destination); osc.start();
-  S.sound.nodes.push(osc);
+  S.sound.toneNodes.push(osc);
 }
 
 // ── TODOS ──────────────────────────────────────────────

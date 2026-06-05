@@ -1,5 +1,12 @@
 // Focus App — Service Worker v3.0
-const CACHE_NAME = 'focus-v11';
+const ASSETS = [
+  '/focus/',
+  '/focus/index.html',
+  '/focus/rain.mp3',
+  '/focus/forest.mp3',
+  '/focus/cafe.mp3',
+];
+const CACHE_NAME = 'focus-v12';
 const ASSETS = [
   '/focus/',
   '/focus/index.html',

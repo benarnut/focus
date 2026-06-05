@@ -236,7 +236,7 @@
     background: var(--bg2);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 14px 16px;
+    padding: 10px 14px;
   }
   .sound-label {
     font-family: var(--font-mono);
@@ -262,7 +262,7 @@
     font-style: italic;
   }
   .sound-options {
-    display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 4px;
+    display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 2px;
   }
   .headphone-tip {
     font-size: 11px; color: var(--text3);
@@ -1469,6 +1469,14 @@
   </div>
   <!-- WEEK VIEW -->
   <div id="stats-week-view" style="display:none;">
+    <!-- Week navigation -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding:0 4px;">
+      <button id="week-prev-btn" onclick="changeWeek(-1)"
+        style="background:none;border:none;font-family:var(--font-mono);font-size:16px;color:var(--text2);cursor:pointer;padding:4px 8px;">‹</button>
+      <span id="week-range-label" style="font-family:var(--font-mono);font-size:11px;color:var(--text3);"></span>
+      <button id="week-next-btn" onclick="changeWeek(1)"
+        style="background:none;border:none;font-family:var(--font-mono);font-size:16px;color:var(--text2);cursor:pointer;padding:4px 8px;opacity:0.3;">›</button>
+    </div>
     <div class="week-bar-chart">
       <div class="week-bars" id="week-bars"></div>
     </div>
@@ -1494,12 +1502,18 @@
         <div class="stat-sub" id="stat-week-unit">min</div>
       </div>
     </div>
+    <!-- Day breakdown -->
+    <div class="session-log" id="day-breakdown-card" style="display:none;margin-bottom:10px;">
+      <div class="session-log-header" id="day-breakdown-title">MON 30 MAY</div>
+      <div id="day-breakdown-content"></div>
+    </div>
+
     <div class="session-log" id="week-project-card">
       <div class="session-log-header">by project</div>
       <div id="week-project-list"></div>
     </div>
     <div class="session-log" id="week-task-card" style="margin-top:10px;">
-      <div class="session-log-header">top tasks</div>
+      <div class="session-log-header">top 5 tasks</div>
       <div id="week-task-list"></div>
     </div>
   </div>
@@ -2361,7 +2375,7 @@ function selectTone(type) {
   save();
   const ctx = getAudioCtx();
   const vol = parseInt(document.getElementById('tone-vol-slider').value) / 100;
-  // Play tone — redirect nodes to toneNodes
+  // Play tone directly — pass ctx and vol
   const prevNodes = S.sound.nodes;
   S.sound.nodes = S.sound.toneNodes;
   SOUNDS[type](ctx, vol);
@@ -2755,6 +2769,7 @@ function applySettings() {
 
 function genBrownNoise(ctx, vol) {
   if (!ctx) { ctx = getAudioCtx(); vol = parseInt(document.getElementById('vol-slider').value)/100; }
+  // Brown noise is ambient — uses ambient vol-slider
   const buf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
   const d = buf.getChannelData(0);
   let lastOut = 0;
@@ -2772,7 +2787,7 @@ function genBrownNoise(ctx, vol) {
 }
 
 function genAlphaWave(ctx, vol) {
-  if (!ctx) { ctx = getAudioCtx(); vol = parseInt(document.getElementById('vol-slider').value)/100; }
+  if (!ctx) { ctx = getAudioCtx(); vol = parseInt(document.getElementById('tone-vol-slider').value)/100; }
   // Binaural: left 200Hz, right 210Hz → 10Hz alpha beat
   const merger = ctx.createChannelMerger(2);
   const g = ctx.createGain();
@@ -2792,22 +2807,24 @@ function genAlphaWave(ctx, vol) {
 }
 
 function genGamma40(ctx, vol) {
-  if (!ctx) { ctx = getAudioCtx(); vol = parseInt(document.getElementById('vol-slider').value)/100; }
+  if (!ctx) { ctx = getAudioCtx(); vol = parseInt(document.getElementById('tone-vol-slider').value)/100; }
   const osc = ctx.createOscillator();
   osc.type = 'sine';
   osc.frequency.value = 40;
-  const g = masterGain(ctx, vol * 0.2); // lower gain for pure tone
-  osc.connect(g); osc.start();
+  const g = ctx.createGain();
+  g.gain.value = vol * 0.2;
+  osc.connect(g); g.connect(ctx.destination); osc.start();
   S.sound.nodes.push(osc);
 }
 
 function genHz528(ctx, vol) {
-  if (!ctx) { ctx = getAudioCtx(); vol = parseInt(document.getElementById('vol-slider').value)/100; }
+  if (!ctx) { ctx = getAudioCtx(); vol = parseInt(document.getElementById('tone-vol-slider').value)/100; }
   const osc = ctx.createOscillator();
   osc.type = 'sine';
   osc.frequency.value = 528;
-  const g = masterGain(ctx, vol * 0.2);
-  osc.connect(g); osc.start();
+  const g = ctx.createGain();
+  g.gain.value = vol * 0.2;
+  osc.connect(g); g.connect(ctx.destination); osc.start();
   S.sound.nodes.push(osc);
 }
 
@@ -3200,6 +3217,9 @@ function exportAllNotes() {
 renderNotes();
 
 // ── STATS ──────────────────────────────────────────────
+let _weekOffset = 0; // 0 = this week, -1 = last week, etc.
+let _selectedDay = null; // dateStr of selected day, null = show full week
+
 function fmtMins(mins) {
   if (!mins || mins <= 0) return '0 min';
   if (mins < 60) return `${mins} min`;
@@ -3212,7 +3232,7 @@ function switchStatsTab(tab) {
   document.getElementById('tab-week').classList.toggle('active', tab === 'week');
   document.getElementById('stats-today-view').style.display = tab === 'today' ? 'block' : 'none';
   document.getElementById('stats-week-view').style.display = tab === 'week' ? 'block' : 'none';
-  if (tab === 'week') { renderWeekStats(); renderHeatmap(); }
+  if (tab === 'week') { _selectedDay = null; renderWeekStats(); renderHeatmap(); }
 }
 
 function renderStats() {
@@ -3248,6 +3268,65 @@ function renderStats() {
     `;
     logEl.appendChild(row);
   });
+}
+
+function changeWeek(dir) {
+  const newOffset = _weekOffset + dir;
+  if (newOffset > 0) return; // can't go to future
+  _weekOffset = newOffset;
+  _selectedDay = null;
+  renderWeekStats();
+  renderHeatmap();
+}
+
+function selectDay(dateStr) {
+  if (_selectedDay === dateStr) {
+    // Deselect — show full week
+    _selectedDay = null;
+    document.getElementById('day-breakdown-card').style.display = 'none';
+  } else {
+    _selectedDay = dateStr;
+    showDayBreakdown(dateStr);
+  }
+  renderWeekStats();
+}
+
+function showDayBreakdown(dateStr) {
+  const card = document.getElementById('day-breakdown-card');
+  const title = document.getElementById('day-breakdown-title');
+  const content = document.getElementById('day-breakdown-content');
+  card.style.display = 'block';
+
+  // Format title
+  const d = new Date(dateStr);
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  title.textContent = `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]}`;
+
+  // Get sessions for this day
+  const sessions = S.data.sessions.filter(s => s.date === dateStr);
+  if (!sessions.length) {
+    content.innerHTML = '<div class="empty-state" style="padding:16px;">no sessions on this day</div>';
+    return;
+  }
+
+  const totalCount = sessions.reduce((a,s) => a + (s.count||1), 0);
+  const totalMins = sessions.reduce((a,s) => a + (s.totalMinutes || (s.count||1) * (S.data.settings.workMin||25)), 0);
+
+  content.innerHTML = `
+    <div style="padding:8px 16px 4px;font-family:var(--font-mono);font-size:11px;color:var(--text3);">
+      ${totalCount} sessions · ${fmtMins(totalMins)}
+    </div>` +
+    sessions.sort((a,b) => (b.count||1)-(a.count||1)).map(s => {
+      const effortStr = s.avgEffort != null ? ` · ${EFFORT_EMOJI[Math.round(s.avgEffort)]} ${s.avgEffort}` : '';
+      return `<div class="session-row">
+        <span class="session-task">${escHtml(s.label)}</span>
+        <div class="session-meta">
+          <div class="session-count">${s.count||1}× · ${fmtMins(s.totalMinutes || (s.count||1)*(S.data.settings.workMin||25))}${effortStr}</div>
+          <div>${s.lastTime||''}</div>
+        </div>
+      </div>`;
+    }).join('');
 }
 
 function renderHeatmap() {
@@ -3305,12 +3384,28 @@ function renderWeekStats() {
   const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const today = new Date();
   const focusMins = S.data.settings.workMin || 25;
-  // Build 7-day window
+
+  // Update nav buttons
+  const prevBtn = document.getElementById('week-prev-btn');
+  const nextBtn = document.getElementById('week-next-btn');
+  const weekRangeEl = document.getElementById('week-range-label');
+  if (nextBtn) nextBtn.style.opacity = _weekOffset === 0 ? '0.3' : '1';
+  if (nextBtn) nextBtn.disabled = _weekOffset === 0;
+
+  // Build 7-day window based on offset
   const week = Array.from({length:7}, (_,i) => {
     const d = new Date(today);
-    d.setDate(today.getDate() - (6-i));
-    return { dateStr: d.toDateString(), label: days[d.getDay()], isToday: i===6 };
+    d.setDate(today.getDate() - (6-i) + (_weekOffset * 7));
+    return { dateStr: d.toDateString(), label: days[d.getDay()], isToday: _weekOffset === 0 && i===6 };
   });
+
+  // Update range label
+  if (weekRangeEl) {
+    const fmt = d => `${d.getDate()} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]}`;
+    const start = new Date(today); start.setDate(today.getDate() - 6 + (_weekOffset * 7));
+    const end = new Date(today); end.setDate(today.getDate() + (_weekOffset * 7));
+    weekRangeEl.textContent = `${fmt(start)} – ${fmt(end)}`;
+  }
   const counts = week.map(w => {
     const sessions = S.data.sessions.filter(s => s.date === w.dateStr);
     return sessions.reduce((a,s) => a + (s.count||1), 0);
@@ -3324,13 +3419,17 @@ function renderWeekStats() {
   const maxCount = Math.max(...counts, 1);
   // Render bars
   const barsEl = document.getElementById('week-bars');
-  barsEl.innerHTML = week.map((w,i) => `
-    <div class="week-bar-col">
+  barsEl.innerHTML = week.map((w,i) => {
+    const isSelected = _selectedDay === w.dateStr;
+    const barClass = 'week-bar' + (w.isToday ? ' today' : '') + (isSelected ? ' selected' : '');
+    const labelStyle = isSelected ? 'color:var(--accent);font-weight:600;' : '';
+    return `
+    <div class="week-bar-col" onclick="selectDay('${w.dateStr}')" style="cursor:pointer;">
       <div class="week-bar-val">${counts[i] || ''}</div>
-      <div class="week-bar${w.isToday?' today':''}" style="height:${Math.max(4,(counts[i]/maxCount)*72)}px"></div>
-      <div class="week-bar-label">${w.label}</div>
-    </div>
-  `).join('');
+      <div class="${barClass}" style="height:${Math.max(4,(counts[i]/maxCount)*72)}px${isSelected?';background:var(--accent)':''}"></div>
+      <div class="week-bar-label" style="${labelStyle}">${w.label}</div>
+    </div>`;
+  }).join('');
   // Week totals
   const weekTotal = counts.reduce((a,b)=>a+b,0);
   const weekMins = actualMinsPerDay.reduce((a,b)=>a+b,0);

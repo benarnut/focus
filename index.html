@@ -616,13 +616,19 @@
     display: none;
     position: fixed;
     top: 0; left: 0; right: 0;
-    bottom: var(--nav-h); /* stop above nav bar — nav handles its own touch */
+    bottom: var(--nav-h);
     background: var(--bg);
     z-index: 200;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     text-align: center;
+    /* Allow touch to pass through to nav bar below */
+    pointer-events: none;
+  }
+  /* Re-enable pointer events on interactive children */
+  .break-overlay.show > * {
+    pointer-events: auto;
   }
   .break-overlay.show { display: flex; }
   .break-title {
@@ -1372,8 +1378,7 @@
       <button class="sound-pill" onclick="selectSound('rain')" id="snd-rain">rain</button>
       <button class="sound-pill" onclick="selectSound('forest')" id="snd-forest">forest</button>
       <button class="sound-pill" onclick="selectSound('cafe')" id="snd-cafe">café</button>
-      <button class="sound-pill" onclick="selectSound('white')" id="snd-white">white noise</button>
-      <button class="sound-pill" onclick="selectSound('brown')" id="snd-brown">brown noise</button>
+
       <button class="sound-pill active" onclick="selectSound(null)" id="snd-off">off</button>
     </div>
     <div class="headphone-tip" id="headphone-tip">🎧 เสียงนี้ได้ผลดีที่สุดกับหูฟัง</div>
@@ -1642,7 +1647,7 @@
         <span class="help-icon">🌧</span>
         <div class="help-text">
           <strong>Ambient</strong>
-          <span>rain · forest · café — เสียงบรรยากาศจริง · white noise · brown noise — generated noise สำหรับ focus</span>
+          <span>rain · forest · café — เสียงบรรยากาศจริง เปิดลำโพงได้เลย</span>
         </div>
       </div>
 
@@ -2304,10 +2309,8 @@ function stopAndSave() {
 // ── SOUND (Web Audio) ──────────────────────────────────
 const SOUNDS = {
   rain: (ctx, vol) => genRain(ctx, vol),
-  white: (ctx, vol) => genWhiteNoise(ctx, vol),
   forest: (ctx, vol) => genForest(ctx, vol),
-  cafe: (ctx, vol) => genCafe(ctx, vol),
-  brown: (ctx, vol) => genBrownNoise(ctx, vol)
+  cafe: (ctx, vol) => genCafe(ctx, vol)
 };
 
 // Separate tone sounds — nodes go to toneNodes, not ambient nodes
@@ -2343,7 +2346,7 @@ if (!S.sound.toneNodes) S.sound.toneNodes = [];
 
 function selectSound(type) {
   stopSound();
-  document.querySelectorAll('#snd-rain,#snd-forest,#snd-cafe,#snd-white,#snd-brown,#snd-off')
+  document.querySelectorAll('#snd-rain,#snd-forest,#snd-cafe,#snd-off')
     .forEach(p => p && p.classList.remove('active'));
   if (!type) {
     document.getElementById('snd-off').classList.add('active');
@@ -2404,19 +2407,6 @@ function genForest(ctx, vol) {
 function genCafe(ctx, vol) {
   playAudioFile('cafe.mp3', vol);
 }
-
-function genWhiteNoise(ctx, vol) {
-  if (!ctx) { ctx = getAudioCtx(); vol = parseInt(document.getElementById('vol-slider').value)/100; }
-  const buf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
-  const data = buf.getChannelData(0);
-  for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
-  const src = ctx.createBufferSource();
-  src.buffer = buf; src.loop = true;
-  const g = masterGain(ctx, vol * 0.6);
-  src.connect(g); src.start();
-  S.sound.nodes.push(src);
-}
-
 
 
 function exportData() {
@@ -2682,24 +2672,6 @@ function applySettings() {
   toast('Duration updated ✓');
 }
 
-function genBrownNoise(ctx, vol) {
-  if (!ctx) { ctx = getAudioCtx(); vol = parseInt(document.getElementById('vol-slider').value)/100; }
-  // Brown noise is ambient — uses ambient vol-slider
-  const buf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
-  const d = buf.getChannelData(0);
-  let lastOut = 0;
-  for (let i = 0; i < d.length; i++) {
-    const white = Math.random() * 2 - 1;
-    d[i] = (lastOut + (0.02 * white)) / 1.02;
-    lastOut = d[i];
-    d[i] *= 3.5;
-  }
-  const src = ctx.createBufferSource();
-  src.buffer = buf; src.loop = true;
-  const g = masterGain(ctx, vol * 0.7);
-  src.connect(g); src.start();
-  S.sound.nodes.push(src);
-}
 
 function genAlphaWave(ctx, vol) {
   // Binaural: left 200Hz, right 210Hz → 10Hz alpha beat
@@ -3333,12 +3305,16 @@ function renderWeekStats() {
   const barsEl = document.getElementById('week-bars');
   barsEl.innerHTML = week.map((w,i) => {
     const isSelected = _selectedDay === w.dateStr;
-    const barClass = 'week-bar' + (w.isToday ? ' today' : '') + (isSelected ? ' selected' : '');
-    const labelStyle = isSelected ? 'color:var(--accent);font-weight:600;' : '';
+    // If a day is selected, suppress today highlight to avoid double highlight
+    const showToday = w.isToday && !_selectedDay;
+    const barBg = isSelected ? 'var(--accent)' : showToday ? 'var(--text)' : 'var(--bg3)';
+    const labelStyle = isSelected
+      ? 'color:var(--accent);font-weight:600;'
+      : showToday ? 'font-weight:500;' : '';
     return `
     <div class="week-bar-col" onclick="selectDay('${w.dateStr}')" style="cursor:pointer;">
       <div class="week-bar-val">${counts[i] || ''}</div>
-      <div class="${barClass}" style="height:${Math.max(4,(counts[i]/maxCount)*72)}px${isSelected?';background:var(--accent)':''}"></div>
+      <div class="week-bar" style="height:${Math.max(4,(counts[i]/maxCount)*72)}px;background:${barBg};"></div>
       <div class="week-bar-label" style="${labelStyle}">${w.label}</div>
     </div>`;
   }).join('');

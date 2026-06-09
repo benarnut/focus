@@ -6,7 +6,7 @@ const ASSETS = [
   '/focus/forest.mp3',
   '/focus/cafe.mp3',
 ];
-const CACHE_NAME = 'focus-v12';
+const CACHE_NAME = 'focus-v13';
 const ASSETS = [
   '/focus/',
   '/focus/index.html',
